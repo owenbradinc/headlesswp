@@ -56,6 +56,9 @@ class HeadlessWP_Admin {
 			return;
 		}
 
+		// Enqueue jQuery for admin pages
+		wp_enqueue_script('jquery');
+
 		// Enqueue the stylesheet
 		wp_enqueue_style(
 			'headlesswp-admin-styles',
@@ -70,6 +73,19 @@ class HeadlessWP_Admin {
             .headlesswp-admin-wrap .wrap h1 { 
                 display: inline-block;
                 margin: 0;
+            }
+            
+            /* Styles for CORS origins table */
+            .cors-origins-container {
+                margin-top: 20px;
+            }
+            
+            .cors-origins-container .hidden {
+                display: none;
+            }
+            
+            #cors-origins-table input[type="text"] {
+                width: 100%;
             }
         ');
 	}
@@ -109,8 +125,8 @@ class HeadlessWP_Admin {
 
 		add_submenu_page(
 			'headlesswp',
-			__('API Manager', 'headlesswp'),
-			__('API Manager', 'headlesswp'),
+			__('Endpoints', 'headlesswp'),
+			__('Endpoints', 'headlesswp'),
 			'manage_options',
 			'headlesswp-api',
 			[$this, 'display_endpoints_page']
@@ -212,10 +228,8 @@ class HeadlessWP_Admin {
 			return;
 		}
 
-		// Get all registered REST routes
-		$rest_server = rest_get_server();
-		$routes = $rest_server->get_routes();
-		ksort($routes);
+		// Get the options for the template
+		$options = $this->options;
 
 		// Include the security settings page template
 		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/security.php';

@@ -101,3 +101,77 @@
     border-bottom: 1px solid #eee;
     padding-bottom: 10px;
 }
+
+/* CORS Manager specific styles */
+.origins-type-selector {
+    margin-bottom: 15px;
+}
+
+.origins-manager table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.origins-manager th {
+    text-align: left;
+    padding: 8px;
+    background-color: #f8f8f8;
+    font-weight: 600;
+}
+
+.origins-manager td {
+    padding: 8px;
+    vertical-align: middle;
+}
+
+.origins-manager input[type="text"] {
+    width: 100%;
+}
+
+.origins-manager .js-add-origin {
+    margin-top: 10px;
+}
+
+.origins-manager .js-remove-origin {
+    color: #a00;
+}
+
+.origins-manager.hidden {
+    display: none;
+}
+
+/* Info message styles */
+.headlesswp-info {
+    background-color: #f0f8ff;
+    border-left: 4px solid #2196F3;
+    padding: 10px 15px;
+    margin: 15px 0;
+}
+
+.headlesswp-warning {
+    background-color: #fff8e1;
+    border-left: 4px solid #ffc107;
+    padding: 10px 15px;
+    margin: 15px 0;
+}
+
+/* Responsive styles */
+@media screen and (max-width: 782px) {
+    .headlesswp-admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .headlesswp-header-nav {
+        margin-top: 15px;
+    }
+
+    .origins-manager td {
+        display: block;
+    }
+
+    .origins-manager td:first-child {
+        padding-bottom: 0;
+    }
+}

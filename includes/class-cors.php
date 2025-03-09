@@ -48,25 +48,72 @@ class HeadlessWP_Security {
 	 * Add CORS support to the REST API.
 	 */
 	public function add_cors_support() {
-		$allowed_origins = $this->options['allowed_origins'];
-
 		remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
-		add_filter('rest_pre_serve_request', function ($served, $result, $request, $server) use ($allowed_origins) {
-			$origin = get_http_origin();
+		add_filter('rest_pre_serve_request', [$this, 'handle_cors_headers'], 10, 4);
+	}
 
-			if ($origin && ($allowed_origins === '*' || in_array($origin, explode(',', $allowed_origins)))) {
-				header('Access-Control-Allow-Origin: ' . esc_url_raw($origin));
-				header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE, PATCH');
-				header('Access-Control-Allow-Credentials: true');
-				header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce');
+	/**
+	 * Handle CORS headers for REST API requests.
+	 *
+	 * @param bool           $served  Whether the request has already been served.
+	 * @param WP_REST_Response $result  Result to send to the client.
+	 * @param WP_REST_Request  $request Request used to generate the response.
+	 * @param WP_REST_Server   $server  Server instance.
+	 * @return bool Whether the request has already been served.
+	 */
+	public function handle_cors_headers($served, $result, $request, $server) {
+		$origin = get_http_origin();
 
-				if ('OPTIONS' === $_SERVER['REQUEST_METHOD']) {
-					header('Access-Control-Max-Age: 86400');
-					exit;
-				}
-			}
-
+		if (!$origin) {
 			return $served;
-		}, 10, 4);
+		}
+
+		// Get allowed origins from options
+		$allowed_origins = !empty($this->options['cors_origins']) ? $this->options['cors_origins'] : [];
+		$all_origins_allowed = !empty($this->options['allow_all_origins']);
+
+		// Check if the origin is allowed
+		$origin_is_allowed = $all_origins_allowed || $this->is_origin_allowed($origin, $allowed_origins);
+
+		if ($origin_is_allowed) {
+			header('Access-Control-Allow-Origin: ' . esc_url_raw($origin));
+			header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE, PATCH');
+			header('Access-Control-Allow-Credentials: true');
+			header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce');
+
+			if ('OPTIONS' === $_SERVER['REQUEST_METHOD']) {
+				header('Access-Control-Max-Age: 86400');
+				exit;
+			}
+		}
+
+		return $served;
+	}
+
+	/**
+	 * Check if the origin is in the list of allowed origins.
+	 *
+	 * @param string $origin The origin to check.
+	 * @param array $allowed_origins List of allowed origins.
+	 * @return bool Whether the origin is allowed.
+	 */
+	private function is_origin_allowed($origin, $allowed_origins) {
+		if (empty($allowed_origins)) {
+			return false;
+		}
+
+		// Remove protocol and trailing slash for comparison
+		$normalized_origin = rtrim(preg_replace('(^https?://)', '', $origin), '/');
+
+		foreach ($allowed_origins as $allowed_origin) {
+			// Normalize the allowed origin for comparison
+			$normalized_allowed = rtrim(preg_replace('(^https?://)', '', $allowed_origin['origin']), '/');
+
+			if ($normalized_origin === $normalized_allowed) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

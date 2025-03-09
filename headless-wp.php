@@ -31,7 +31,11 @@ function activate_headlesswp() {
 	if (!get_option('headlesswp_options')) {
 		update_option('headlesswp_options', [
 			'disable_themes' => false,
-			'disable_frontend' => false
+			'disable_frontend' => false,
+			'enable_cors' => true,
+			'allow_all_origins' => false,
+			'cors_origins' => [],
+			'custom_endpoints' => []
 		]);
 	}
 

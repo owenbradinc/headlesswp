@@ -1,0 +1,151 @@
+/**
+ * API Manager JavaScript
+ */
+(function($) {
+    'use strict';
+
+    // Initialize clipboard.js
+    if (typeof ClipboardJS !== 'undefined') {
+        var clipboard = new ClipboardJS('.headlesswp-copy-button');
+
+        clipboard.on('success', function(e) {
+            var $button = $(e.trigger);
+            var originalHTML = $button.html();
+
+            // Show success message
+            $button.html('<span class="dashicons dashicons-yes"></span> ' + headlesswpData.strings.copySuccess);
+
+            // Reset button after 2 seconds
+            setTimeout(function() {
+                $button.html(originalHTML);
+            }, 2000);
+
+            e.clearSelection();
+        });
+    }
+
+    // Namespace selector change
+    $('#namespace-select').on('change', function() {
+        var namespace = $(this).val();
+
+        // Hide all namespace trees
+        $('.headlesswp-namespace-tree').hide();
+
+        // Show the selected namespace tree
+        $('#namespace-tree-' + namespace.replace(/\//g, '-')).show();
+
+        // Update the URL without reloading
+        var url = new URL(window.location.href);
+        url.searchParams.set('namespace', namespace);
+        url.searchParams.delete('endpoint');
+        window.history.pushState({}, '', url);
+    });
+
+    // Toggle tree directories
+    $('.headlesswp-endpoint-tree').on('click', '.headlesswp-tree-directory', function(e) {
+        if ($(e.target).hasClass('headlesswp-tree-link')) {
+            return; // Don't toggle if clicking on a link
+        }
+
+        var $children = $(this).next('.headlesswp-tree-children');
+        var $icon = $(this).find('.dashicons');
+
+        if ($children.is(':visible')) {
+            $children.slideUp(200);
+            $icon.removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-right-alt2');
+        } else {
+            $children.slideDown(200);
+            $icon.removeClass('dashicons-arrow-right-alt2').addClass('dashicons-arrow-down-alt2');
+        }
+    });
+
+    // Search functionality
+    $('#endpoint-search').on('input', function() {
+        var searchText = $(this).val().toLowerCase();
+
+        if (searchText) {
+            $('#clear-search').show();
+            $('.headlesswp-tree-item').each(function() {
+                var endpointText = $(this).text().toLowerCase();
+                if (endpointText.indexOf(searchText) > -1) {
+                    $(this).show();
+                    // Show parent directories
+                    $(this).parents('.headlesswp-tree-children').show();
+                    $(this).parents('.headlesswp-tree-children').prev('.headlesswp-tree-directory').find('.dashicons')
+                           .removeClass('dashicons-arrow-right-alt2').addClass('dashicons-arrow-down-alt2');
+                } else {
+                    $(this).hide();
+                }
+            });
+
+            // Hide directories that don't have visible children
+            $('.headlesswp-tree-directory').each(function() {
+                var $dir = $(this);
+                var $children = $dir.next('.headlesswp-tree-children');
+                var hasVisibleEndpoints = $children.find('.headlesswp-tree-item:visible').length > 0;
+
+                if (!hasVisibleEndpoints) {
+                    $dir.hide();
+                } else {
+                    $dir.show();
+                }
+            });
+        } else {
+            $('#clear-search').hide();
+            $('.headlesswp-tree-item, .headlesswp-tree-directory').show();
+            $('.headlesswp-tree-children').hide();
+            $('.headlesswp-tree-toggle .dashicons')
+                .removeClass('dashicons-arrow-down-alt2')
+                .addClass('dashicons-arrow-right-alt2');
+        }
+    });
+
+    // Clear search button
+    $('#clear-search').on('click', function() {
+        $('#endpoint-search').val('').trigger('input');
+    });
+
+    // Expand all directories on page load for the active endpoint
+    $('.headlesswp-tree-active').parents('.headlesswp-tree-children').show()
+                               .prev('.headlesswp-tree-directory').find('.dashicons')
+                               .removeClass('dashicons-arrow-right-alt2')
+                               .addClass('dashicons-arrow-down-alt2');
+
+    // Handle method selection for testing
+    $('#method').on('change', function() {
+        var method = $(this).val();
+        var $params = $('#params');
+
+        if (method === 'GET') {
+            $params.attr('placeholder', '{\n  "param1": "value1",\n  "param2": "value2"\n}');
+        } else {
+            $params.attr('placeholder', '{\n  "key1": "value1",\n  "key2": "value2"\n}');
+        }
+    });
+
+    // Format JSON response
+    function formatJSON(json) {
+        if (typeof json !== 'object') {
+            try {
+                json = JSON.parse(json);
+                return JSON.stringify(json, null, 2);
+            } catch (e) {
+                return json;
+            }
+        }
+        return JSON.stringify(json, null, 2);
+    }
+
+    // Handle AJAX endpoint testing
+    $('.headlesswp-test-form').on('submit', function(e) {
+        // Form submission is handled by PHP directly for now
+        // In the future, we could make this AJAX-based for a better UX
+    });
+
+    // Toggle endpoint status
+    $('.headlesswp-toggle-form').on('submit', function(e) {
+        // Form submission is handled by PHP directly for now
+        // In the future, we could make this AJAX-based for a better UX
+    });
+
+})(jQuery);

@@ -64,12 +64,13 @@ class HeadlessWP {
 	 * Initialize the plugin.
 	 */
 	public function __construct() {
-		// Load plugin options
+		// Load plugin options with default values
 		$this->options = get_option('headlesswp_options', [
 			'disable_themes' => false,
 			'disable_frontend' => false,
 			'enable_cors' => true,
-			'allowed_origins' => '*',
+			'allow_all_origins' => false,
+			'cors_origins' => [],
 			'custom_endpoints' => [],
 		]);
 

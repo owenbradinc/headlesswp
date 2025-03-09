@@ -72,50 +72,6 @@ class HeadlessWP_Settings {
 				'description' => __('Hide the Themes section in the WordPress admin.', 'headlesswp')
 			]
 		);
-
-		add_settings_field(
-			'disable_frontend',
-			__('Disable Frontend', 'headlesswp'),
-			[$this, 'render_checkbox_field'],
-			'headlesswp',
-			'headlesswp_general',
-			[
-				'id' => 'disable_frontend',
-				'description' => __('Redirect all frontend requests to the REST API.', 'headlesswp')
-			]
-		);
-
-		// CORS settings section
-		add_settings_section(
-			'headlesswp_cors',
-			__('CORS Settings', 'headlesswp'),
-			[$this, 'render_cors_section'],
-			'headlesswp'
-		);
-
-		add_settings_field(
-			'enable_cors',
-			__('Enable CORS', 'headlesswp'),
-			[$this, 'render_checkbox_field'],
-			'headlesswp',
-			'headlesswp_cors',
-			[
-				'id' => 'enable_cors',
-				'description' => __('Enable Cross-Origin Resource Sharing for the REST API.', 'headlesswp')
-			]
-		);
-
-		add_settings_field(
-			'allowed_origins',
-			__('Allowed Origins', 'headlesswp'),
-			[$this, 'render_text_field'],
-			'headlesswp',
-			'headlesswp_cors',
-			[
-				'id' => 'allowed_origins',
-				'description' => __('Comma-separated list of allowed origins, or * for all origins.', 'headlesswp')
-			]
-		);
 	}
 
 	/**
@@ -128,19 +84,24 @@ class HeadlessWP_Settings {
 		$output = [];
 
 		// Validate checkboxes
-		$checkboxes = ['disable_themes', 'disable_frontend', 'enable_cors'];
+		$checkboxes = ['disable_themes', 'enable_cors'];
 		foreach ($checkboxes as $checkbox) {
 			$output[$checkbox] = isset($input[$checkbox]) ? true : false;
 		}
 
+		// Preserve the disable_frontend setting which is now managed on the dashboard
+		$output['disable_frontend'] = isset($this->options['disable_frontend']) ? $this->options['disable_frontend'] : false;
+
 		// Validate text fields
 		$output['allowed_origins'] = sanitize_text_field($input['allowed_origins']);
 
-		// Preserve custom endpoints
+		// Preserve custom endpoints and disabled endpoints
 		$output['custom_endpoints'] = isset($this->options['custom_endpoints']) ? $this->options['custom_endpoints'] : [];
 		if (isset($input['custom_endpoints']) && is_array($input['custom_endpoints'])) {
 			$output['custom_endpoints'] = $input['custom_endpoints'];
 		}
+
+		$output['disabled_endpoints'] = isset($this->options['disabled_endpoints']) ? $this->options['disabled_endpoints'] : [];
 
 		return $output;
 	}
@@ -150,6 +111,7 @@ class HeadlessWP_Settings {
 	 */
 	public function render_general_section() {
 		echo '<p>' . __('Configure the general settings for your headless WordPress installation.', 'headlesswp') . '</p>';
+		echo '<p>' . __('Note: The "Disable Frontend" setting has been moved to the Dashboard for easier access.', 'headlesswp') . '</p>';
 	}
 
 	/**

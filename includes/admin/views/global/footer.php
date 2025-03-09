@@ -12,14 +12,14 @@ if (!defined('ABSPATH')) {
 ?>
 <hr class="headlesswp-hr">
 <div class="headlesswp-admin-footer">
-	<div class="headlesswp-footer-content">
-		<p>
+    <div class="headlesswp-footer-content">
+        <p>
 			<?php printf(
-				__('HeadlessWP v%s | <a href="%s" target="_blank">Help</a> | <a href="%s" target="_blank">Support</a>', 'headlesswp'),
-				HEADLESSWP_VERSION,
+				__('Copyright &copy; %s Weekend Labs, LLC. All Rights Reserved. | <a href="%s" target="_blank">Help</a> | <a href="%s" target="_blank">Support</a>', 'headlesswp'),
+				date('Y'),
 				'https://headlesswp.net/docs',
 				'https://headlesswp.net/support'
 			); ?>
-		</p>
-	</div>
+        </p>
+    </div>
 </div>
