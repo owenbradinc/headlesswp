@@ -23,7 +23,7 @@ class HeadlessWP_Admin {
 	 *
 	 * @var array
 	 */
-	protected $options;
+	protected array $options;
 
 	/**
 	 * Initialize the class and set its properties.
@@ -52,7 +52,7 @@ class HeadlessWP_Admin {
 	 */
 	public function enqueue_admin_assets($hook) {
 		// Only load on plugin pages
-		if (strpos($hook, 'headlesswp') === false) {
+		if (! str_contains( $hook, 'headlesswp' ) ) {
 			return;
 		}
 
@@ -130,6 +130,16 @@ class HeadlessWP_Admin {
 			'manage_options',
 			'headlesswp-api',
 			[$this, 'display_endpoints_page']
+		);
+
+
+		add_submenu_page(
+			'headlesswp',
+			__('API Keys', 'headlesswp'),
+			__('API Keys', 'headlesswp'),
+			'manage_options',
+			'headlesswp-api-keys',
+			[$this, 'display_api_keys_page']
 		);
 
 		add_submenu_page(
@@ -218,6 +228,23 @@ class HeadlessWP_Admin {
 
 		// Include the endpoints page template
 		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/api.php';
+	}
+
+	/**
+	 * Display the API keys page.
+	 */
+	public function display_api_keys_page(): void {
+		if (!current_user_can('manage_options')) {
+			return;
+		}
+
+		// Get all registered REST routes
+		$rest_server = rest_get_server();
+		$routes = $rest_server->get_routes();
+		ksort($routes);
+
+		// Include the endpoints page template
+		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/api-keys.php';
 	}
 
 	/**

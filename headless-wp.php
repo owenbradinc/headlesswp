@@ -35,8 +35,16 @@ function activate_headlesswp() {
 			'enable_cors' => true,
 			'allow_all_origins' => false,
 			'cors_origins' => [],
-			'custom_endpoints' => []
+			'custom_endpoints' => [],
+			'api_keys' => []
 		]);
+	} else {
+		// If options exist but api_keys is missing, add it
+		$options = get_option('headlesswp_options');
+		if (!isset($options['api_keys'])) {
+			$options['api_keys'] = [];
+			update_option('headlesswp_options', $options);
+		}
 	}
 
 	// Create required directories
@@ -51,6 +59,24 @@ function activate_headlesswp() {
 	}
 }
 register_activation_hook(__FILE__, 'activate_headlesswp');
+
+/**
+ * Redirect to setup page after activation.
+ */
+function headlesswp_activation_redirect() {
+	// Check if we should redirect
+	if (get_transient('headlesswp_activation_redirect')) {
+		// Delete the transient
+		delete_transient('headlesswp_activation_redirect');
+
+		// Only redirect if we're activating the plugin (not on bulk activation)
+		if (!isset($_GET['activate-multi']) && isset($_GET['activate'])) {
+			wp_redirect(admin_url('admin.php?page=headlesswp-setup'));
+			exit;
+		}
+	}
+}
+add_action('admin_init', 'headlesswp_activation_redirect');
 
 /**
  * Load plugin dependencies.
