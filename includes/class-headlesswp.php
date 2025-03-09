@@ -56,9 +56,9 @@ class HeadlessWP {
 	/**
 	 * The CORS class instance.
 	 *
-	 * @var HeadlessWP_CORS
+	 * @var HeadlessWP_Security
 	 */
-	protected $cors;
+	protected $security;
 
 	/**
 	 * Initialize the plugin.
@@ -81,7 +81,7 @@ class HeadlessWP {
 		$this->admin = new HeadlessWP_Admin($this->options);
 		$this->frontend = new HeadlessWP_Frontend($this->options);
 		$this->api = new HeadlessWP_API($this->options);
-		$this->cors = new HeadlessWP_CORS($this->options);
+		$this->security = new HeadlessWP_Security($this->options);
 	}
 
 	/**
@@ -108,7 +108,7 @@ class HeadlessWP {
 		$this->admin->init();
 		$this->frontend->init();
 		$this->api->init();
-		$this->cors->init();
+		$this->security->init();
 	}
 
 	/**
@@ -118,7 +118,7 @@ class HeadlessWP {
 		load_plugin_textdomain(
 			'headlesswp',
 			false,
-			dirname(HEADLESSWP_PLUGIN_BASENAME) . '/languages/'
+			dirname(HEADLESSWP_PLUGIN_BASENAME) . '/lang/'
 		);
 	}
 }

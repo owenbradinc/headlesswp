@@ -84,18 +84,36 @@ class HeadlessWP_Admin {
 			__('HeadlessWP', 'headlesswp'),
 			'manage_options',
 			'headlesswp',
-			[$this, 'display_settings_page'],
+			[$this, 'display_about_page'],
 			'dashicons-superhero'
 		);
 
 		// Add submenu items
 		add_submenu_page(
 			'headlesswp',
-			__('Settings', 'headlesswp'),
-			__('Settings', 'headlesswp'),
+			__('Dashboard', 'headlesswp'),
+			__('Dashboard', 'headlesswp'),
 			'manage_options',
 			'headlesswp',
-			[$this, 'display_settings_page']
+			[$this, 'display_about_page']
+		);
+
+		add_submenu_page(
+			'headlesswp',
+			__('Setup', 'headlesswp'),
+			__('Setup', 'headlesswp'),
+			'manage_options',
+			'headlesswp-setup',
+			[$this, 'display_setup_page']
+		);
+
+		add_submenu_page(
+			'headlesswp',
+			__('API Manager', 'headlesswp'),
+			__('API Manager', 'headlesswp'),
+			'manage_options',
+			'headlesswp-api',
+			[$this, 'display_endpoints_page']
 		);
 
 		add_submenu_page(
@@ -109,12 +127,34 @@ class HeadlessWP_Admin {
 
 		add_submenu_page(
 			'headlesswp',
-			__('API Endpoints', 'headlesswp'),
-			__('API Endpoints', 'headlesswp'),
+			__('Settings', 'headlesswp'),
+			__('Settings', 'headlesswp'),
 			'manage_options',
-			'headlesswp-endpoints',
-			[$this, 'display_endpoints_page']
+			'headlesswp-settings',
+			[$this, 'display_settings_page']
 		);
+
+		add_submenu_page(
+			'headlesswp',
+			__('Upgrade', 'headlesswp'),
+			__('Upgrade', 'headlesswp'),
+			'manage_options',
+			'headlesswp-premium',
+			function() {
+				// This function will never be called as we're redirecting via JavaScript
+				wp_redirect('https://headlesswp.net/pricing');
+				exit;
+			}
+		);
+
+		add_action('admin_head', function() {
+			echo '<style>
+        #adminmenu .wp-submenu a[href$="page=headlesswp-premium"] {
+            font-weight: bold !important;
+            color: gold !important;
+        }
+    </style>';
+		});
 	}
 
 	/**
@@ -127,6 +167,24 @@ class HeadlessWP_Admin {
 
 		// Include the settings page template
 		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/settings.php';
+	}
+
+	public function display_setup_page() {
+		if (!current_user_can('manage_options')) {
+			return;
+		}
+
+		// Include the settings page template
+		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/setup.php';
+	}
+
+	public function display_about_page() {
+		if (!current_user_can('manage_options')) {
+			return;
+		}
+
+		// Include the settings page template
+		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/about.php';
 	}
 
 	/**
@@ -153,6 +211,11 @@ class HeadlessWP_Admin {
 		if (!current_user_can('manage_options')) {
 			return;
 		}
+
+		// Get all registered REST routes
+		$rest_server = rest_get_server();
+		$routes = $rest_server->get_routes();
+		ksort($routes);
 
 		// Include the security settings page template
 		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/security.php';

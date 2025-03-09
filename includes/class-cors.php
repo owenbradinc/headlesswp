@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 /**
  * CORS handling class.
  */
-class HeadlessWP_CORS {
+class HeadlessWP_Security {
 
 	/**
 	 * Plugin options.

@@ -46,7 +46,6 @@ class HeadlessWP_Settings {
 	 * Register plugin settings.
 	 */
 	public function register_settings() {
-		// Main settings
 		register_setting(
 			'headlesswp_options',
 			'headlesswp_options',
@@ -86,27 +85,20 @@ class HeadlessWP_Settings {
 			]
 		);
 
-		// Security settings (formerly CORS)
-		register_setting(
-			'headlesswp_security_options',
-			'headlesswp_options',
-			[$this, 'validate_options']
-		);
-
-		// Security settings section
+		// CORS settings section
 		add_settings_section(
-			'headlesswp_security_cors',
+			'headlesswp_cors',
 			__('CORS Settings', 'headlesswp'),
 			[$this, 'render_cors_section'],
-			'headlesswp_security'
+			'headlesswp'
 		);
 
 		add_settings_field(
 			'enable_cors',
 			__('Enable CORS', 'headlesswp'),
 			[$this, 'render_checkbox_field'],
-			'headlesswp_security',
-			'headlesswp_security_cors',
+			'headlesswp',
+			'headlesswp_cors',
 			[
 				'id' => 'enable_cors',
 				'description' => __('Enable Cross-Origin Resource Sharing for the REST API.', 'headlesswp')
@@ -117,8 +109,8 @@ class HeadlessWP_Settings {
 			'allowed_origins',
 			__('Allowed Origins', 'headlesswp'),
 			[$this, 'render_text_field'],
-			'headlesswp_security',
-			'headlesswp_security_cors',
+			'headlesswp',
+			'headlesswp_cors',
 			[
 				'id' => 'allowed_origins',
 				'description' => __('Comma-separated list of allowed origins, or * for all origins.', 'headlesswp')
