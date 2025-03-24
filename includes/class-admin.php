@@ -43,6 +43,25 @@ class HeadlessWP_Admin {
 
 		// Enqueue admin scripts and styles
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+
+		add_filter('plugin_action_links_' . HEADLESSWP_PLUGIN_BASENAME, [$this, 'add_plugin_action_links']);
+	}
+
+	/**
+	 * Add plugin action links.
+	 *
+	 * @param array $links Existing plugin action links.
+	 * @return array Modified plugin action links.
+	 */
+	public function add_plugin_action_links($links) {
+		$plugin_links = [
+			'<a href="' . admin_url('admin.php?page=headlesswp-settings') . '">' . __('Settings', 'headlesswp') . '</a>',
+			'<a href="https://headlesswp.net/faq" target="_blank">' . __('FAQ', 'headlesswp') . '</a>',
+			'<a href="https://headlesswp.net/docs" target="_blank">' . __('Docs', 'headlesswp') . '</a>',
+			'<a href="https://headlesswp.net/support" target="_blank">' . __('Support', 'headlesswp') . '</a>'
+		];
+
+		return array_merge($plugin_links, $links);
 	}
 
 	/**
@@ -94,6 +113,12 @@ class HeadlessWP_Admin {
 	 * Add menu to WordPress admin.
 	 */
 	public function add_admin_menu() {
+		$knight_svg = '<svg width="20" height="20" viewBox="0 0 300 287" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M300 286.802H69.4554V240.693H300V286.802ZM120.337 19.9083L109.624 25.5874C85.1247 -7.93381 62.4853 1.11122 62.4853 1.11122L79.0998 41.8408L51.7112 56.4419L49.5056 81.8018L4.86409e-06 165.374L33.4674 187.945C33.4674 187.945 54.0781 159.98 63.9377 154.393C72.1297 149.782 95.6145 146.516 107.103 145.171L159.007 86.0669L168.228 94.1821L139.679 126.697C139.779 126.835 139.871 126.981 139.971 127.135C167.468 171.837 122.296 208.355 87.338 228.405H282.071C275.263 -14.3737 120.337 19.9083 120.337 19.9083Z" fill="white"/>
+    </svg>';
+
+		// Encode the SVG for use as menu icon
+		$knight_icon = 'data:image/svg+xml;base64,' . base64_encode($knight_svg);
 		// Add main menu item
 		add_menu_page(
 			__('HeadlessWP', 'headlesswp'),
@@ -101,7 +126,7 @@ class HeadlessWP_Admin {
 			'manage_options',
 			'headlesswp',
 			[$this, 'display_about_page'],
-			'dashicons-superhero'
+			$knight_icon
 		);
 
 		// Add submenu items
@@ -140,6 +165,15 @@ class HeadlessWP_Admin {
 			'manage_options',
 			'headlesswp-api-keys',
 			[$this, 'display_api_keys_page']
+		);
+
+		add_submenu_page(
+			'headlesswp',
+			__('Extensions', 'headlesswp'),
+			__('Extensions', 'headlesswp'),
+			'manage_options',
+			'headlesswp-extensions',
+			[$this, 'display_extensions_page']
 		);
 
 		add_submenu_page(
@@ -245,6 +279,23 @@ class HeadlessWP_Admin {
 
 		// Include the endpoints page template
 		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/api-keys.php';
+	}
+
+	/**
+	 * Display the Extensions page.
+	 */
+	public function display_extensions_page(): void {
+		if (!current_user_can('manage_options')) {
+			return;
+		}
+
+		// Get all registered REST routes
+		$rest_server = rest_get_server();
+		$routes = $rest_server->get_routes();
+		ksort($routes);
+
+		// Include the endpoints page template
+		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/extensions.php';
 	}
 
 	/**

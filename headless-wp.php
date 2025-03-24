@@ -1,15 +1,13 @@
 <?php
 /**
  * Plugin Name: HeadlessWP
- * Plugin URI: https://github.com/yourusername/headlesswp
- * Description: Turn your WordPress site into a headless CMS with API endpoint management, theme disabling, and more.
+ * Plugin URI: https://headlesswp.net
+ * Description: Turn your WordPress site into a headless CMS with API endpoint and keys management and more.
  * Version: 1.0.0
- * Author: Your Name
- * Author URI: https://yourwebsite.com
- * License: GPL-2.0+
- * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
+ * Author: Weekend Labs
+ * Author URI: https://weekendlabs.net
  * Text Domain: headlesswp
- * Domain Path: /languages
+ * Domain Path: /lang
  */
 
 // If this file is called directly, abort.
