@@ -34,9 +34,10 @@ function headlesswp_admin_notices() {
     <div class="headlesswp-header-nav">
         <nav>
             <ul>
-                <li><a href="https://headlesswp.net/pricing" target="_blank"><?php _e('Upgrade', 'headlesswp'); ?></a></li>
-                <li><a href="https://headlesswp.net/support" target="_blank"><?php _e('Support', 'headlesswp'); ?></a></li>
-                <li><a href="https://headlesswp.net/docs" target="_blank"><?php _e('Documentation', 'headlesswp'); ?></a></li>
+                <li><a href="https://headlesswp.com/docs" target="_blank"><?php _e('Docs', 'headlesswp'); ?></a></li>
+                <li><a href="https://headlesswp.com/roadmap" target="_blank"><?php _e('Roadmap', 'headlesswp'); ?></a></li>
+                <li><a href="https://headlesswp.com/community" target="_blank"><?php _e('Community', 'headlesswp'); ?></a></li>
+                <li><a href="https://headlesswp.com/support" target="_blank"><?php _e('Support', 'headlesswp'); ?></a></li>
             </ul>
         </nav>
     </div>

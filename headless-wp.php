@@ -3,7 +3,7 @@
  * Plugin Name: HeadlessWP
  * Plugin URI: https://headlesswp.net
  * Description: Turn your WordPress site into a headless CMS with API endpoint and keys management and more.
- * Version: 1.0.0
+ * Version: 0.1.0
  * Author: Weekend Labs
  * Author URI: https://weekendlabs.net
  * Text Domain: headlesswp

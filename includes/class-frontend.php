@@ -4,7 +4,7 @@
  *
  * This class handles frontend modifications for headless mode.
  *
- * @since      1.0.0
+ * @since      0.1.0
  * @package    HeadlessWP
  */
 

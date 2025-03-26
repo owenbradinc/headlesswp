@@ -4,7 +4,7 @@
  *
  * This class handles the admin interface for the plugin.
  *
- * @since      1.0.0
+ * @since      0.1.0
  * @package    HeadlessWP
  */
 
@@ -141,15 +141,6 @@ class HeadlessWP_Admin {
 
 		add_submenu_page(
 			'headlesswp',
-			__('Setup', 'headlesswp'),
-			__('Setup', 'headlesswp'),
-			'manage_options',
-			'headlesswp-setup',
-			[$this, 'display_setup_page']
-		);
-
-		add_submenu_page(
-			'headlesswp',
 			__('Endpoints', 'headlesswp'),
 			__('Endpoints', 'headlesswp'),
 			'manage_options',
@@ -169,15 +160,6 @@ class HeadlessWP_Admin {
 
 		add_submenu_page(
 			'headlesswp',
-			__('Extensions', 'headlesswp'),
-			__('Extensions', 'headlesswp'),
-			'manage_options',
-			'headlesswp-extensions',
-			[$this, 'display_extensions_page']
-		);
-
-		add_submenu_page(
-			'headlesswp',
 			__('Security', 'headlesswp'),
 			__('Security', 'headlesswp'),
 			'manage_options',
@@ -192,19 +174,6 @@ class HeadlessWP_Admin {
 			'manage_options',
 			'headlesswp-settings',
 			[$this, 'display_settings_page']
-		);
-
-		add_submenu_page(
-			'headlesswp',
-			__('Upgrade', 'headlesswp'),
-			__('Upgrade', 'headlesswp'),
-			'manage_options',
-			'headlesswp-premium',
-			function() {
-				// This function will never be called as we're redirecting via JavaScript
-				wp_redirect('https://headlesswp.net/pricing');
-				exit;
-			}
 		);
 
 		add_action('admin_head', function() {
@@ -227,15 +196,6 @@ class HeadlessWP_Admin {
 
 		// Include the settings page template
 		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/settings.php';
-	}
-
-	public function display_setup_page() {
-		if (!current_user_can('manage_options')) {
-			return;
-		}
-
-		// Include the settings page template
-		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/setup.php';
 	}
 
 	public function display_about_page() {
@@ -279,23 +239,6 @@ class HeadlessWP_Admin {
 
 		// Include the endpoints page template
 		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/api-keys.php';
-	}
-
-	/**
-	 * Display the Extensions page.
-	 */
-	public function display_extensions_page(): void {
-		if (!current_user_can('manage_options')) {
-			return;
-		}
-
-		// Get all registered REST routes
-		$rest_server = rest_get_server();
-		$routes = $rest_server->get_routes();
-		ksort($routes);
-
-		// Include the endpoints page template
-		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/extensions.php';
 	}
 
 	/**
