@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('HEADLESSWP_VERSION', '1.0.0');
+define('HEADLESSWP_VERSION', '0.1.0');
 define('HEADLESSWP_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('HEADLESSWP_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('HEADLESSWP_PLUGIN_BASENAME', plugin_basename(__FILE__));
