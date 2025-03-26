@@ -1,0 +1,26 @@
+{
+  "name": "weekendlabs/headlesswp",
+  "description": "A WordPress plugin for headless WordPress functionality",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "autoload": {
+    "psr-4": {
+      "HeadlessWP\\": "includes/",
+      "HeadlessWP\\OpenAPI\\": "includes/openapi/src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Owen Bick"
+    },
+    {
+      "name": "Brad Williams"
+    }
+  ],
+  "require": {
+    "php": ">=7.4"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.0"
+  }
+}

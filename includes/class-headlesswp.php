@@ -110,6 +110,7 @@ class HeadlessWP {
 		$this->frontend->init();
 		$this->api->init();
 		$this->security->init();
+		$this->init_openapi();
 	}
 
 	/**
@@ -121,5 +122,17 @@ class HeadlessWP {
 			false,
 			dirname(HEADLESSWP_PLUGIN_BASENAME) . '/lang/'
 		);
+	}
+
+	/**
+	 * Initialize OpenAPI functionality
+	 */
+	private function init_openapi() {
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-openapi.php';
+		$openapi = new HeadlessWP_OpenAPI([
+			'enable_try_it' => true,
+			'enable_callback_discovery' => true
+		]);
+		$openapi->init();
 	}
 }

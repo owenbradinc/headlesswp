@@ -141,6 +141,15 @@ class HeadlessWP_Admin {
 
 		add_submenu_page(
 			'headlesswp',
+			__('OpenAPI', 'headlesswp'),
+			__('OpenAPI', 'headlesswp'),
+			'manage_options',
+			'headlesswp-api-docs',
+			[$this, 'display_openapi_page']
+		);
+
+		add_submenu_page(
+			'headlesswp',
 			__('Endpoints', 'headlesswp'),
 			__('Endpoints', 'headlesswp'),
 			'manage_options',

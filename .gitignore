@@ -22,6 +22,7 @@ wp-cli.local.yml
 
 # Composer
 /vendor/
+composer.lock
 
 *.swp
 # ignore everything in the root except the "wp-content" directory.

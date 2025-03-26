@@ -1,0 +1,12 @@
+{
+  "name": "@weekendlabs/headlesswp",
+  "version": "0.1.0",
+  "description": "A WordPress plugin for headless WordPress functionality",
+  "scripts": {
+    "start": "wp-scripts start",
+    "build": "wp-scripts build"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^26.19.0"
+  }
+}
