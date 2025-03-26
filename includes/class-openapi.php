@@ -34,9 +34,6 @@ class HeadlessWP_OpenAPI {
      * Initialize OpenAPI functionality.
      */
     public function init() {
-        // Add menu page
-        add_action('admin_menu', [$this, 'add_menu_page']);
-        
         // Enqueue scripts and styles
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
 
@@ -212,33 +209,6 @@ class HeadlessWP_OpenAPI {
             'type' => 'object',
             'properties' => []
         ];
-    }
-
-    /**
-     * Add the API documentation menu page.
-     */
-    public function add_menu_page() {
-        add_menu_page(
-            'API Documentation',
-            'API Docs',
-            'manage_options',
-            'headlesswp-api-docs',
-            [$this, 'render_docs_page'],
-            'dashicons-rest-api',
-            30
-        );
-    }
-
-    /**
-     * Render the API documentation page.
-     */
-    public function render_docs_page() {
-        ?>
-        <div class="wrap">
-            <h1>API Documentation</h1>
-            <div id="elements-app"></div>
-        </div>
-        <?php
     }
 
     /**

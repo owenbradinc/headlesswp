@@ -71,7 +71,7 @@ class HeadlessWP_Admin {
 	 */
 	public function enqueue_admin_assets($hook) {
 		// Only load on plugin pages
-		if (! str_contains( $hook, 'headlesswp' ) ) {
+		if (!str_contains($hook, 'headlesswp')) {
 			return;
 		}
 
@@ -107,6 +107,49 @@ class HeadlessWP_Admin {
                 width: 100%;
             }
         ');
+
+		// Only load OpenAPI assets on the OpenAPI page
+		if ($hook === 'headlesswp_page_headlesswp-openapi') {
+			// Enqueue Stoplight Elements from CDN
+			wp_enqueue_script(
+				'stoplight-elements',
+				'https://unpkg.com/@stoplight/elements/web-components.min.js',
+				[],
+				'7.16.0',
+				true
+			);
+
+			wp_enqueue_style(
+				'stoplight-elements-styles',
+				'https://unpkg.com/@stoplight/elements/styles.min.css',
+				[],
+				'7.16.0'
+			);
+
+			// Enqueue our built assets
+			wp_enqueue_script(
+				'headlesswp-openapi',
+				HEADLESSWP_PLUGIN_URL . 'build/openapi.js',
+				['stoplight-elements'],
+				HEADLESSWP_VERSION,
+				true
+			);
+
+			wp_enqueue_style(
+				'headlesswp-openapi',
+				HEADLESSWP_PLUGIN_URL . 'build/openapi.css',
+				['stoplight-elements-styles'],
+				HEADLESSWP_VERSION
+			);
+
+			wp_localize_script('headlesswp-openapi', 'wpOpenApi', [
+				'endpoint' => rest_url('headlesswp/v1/openapi'),
+				'nonce' => wp_create_nonce('wp_rest'),
+				'options' => [
+					'hideTryIt' => !($this->options['openapi']['enable_try_it'] ?? true)
+				]
+			]);
+		}
 	}
 
 	/**
@@ -144,7 +187,7 @@ class HeadlessWP_Admin {
 			__('OpenAPI', 'headlesswp'),
 			__('OpenAPI', 'headlesswp'),
 			'manage_options',
-			'headlesswp-api-docs',
+			'headlesswp-openapi',
 			[$this, 'display_openapi_page']
 		);
 
@@ -263,5 +306,17 @@ class HeadlessWP_Admin {
 
 		// Include the security settings page template
 		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/security.php';
+	}
+
+	/**
+	 * Display the OpenAPI page.
+	 */
+	public function display_openapi_page() {
+		if (!current_user_can('manage_options')) {
+			return;
+		}
+
+		// Include the openapi page template
+		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/openapi.php';
 	}
 }
