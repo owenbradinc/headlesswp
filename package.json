@@ -1,5 +1,5 @@
 {
-  "name": "@weekendlabs/headlesswp",
+  "name": "@owenbradinc/headlesswp",
   "version": "0.1.0",
   "description": "A WordPress plugin for headless WordPress functionality",
   "scripts": {
