@@ -71,7 +71,7 @@ class HeadlessWP_Admin {
 	 */
 	public function enqueue_admin_assets($hook) {
 		// Only load on plugin pages
-		if (! str_contains( $hook, 'headlesswp' ) ) {
+		if (!str_contains($hook, 'headlesswp')) {
 			return;
 		}
 
@@ -107,6 +107,7 @@ class HeadlessWP_Admin {
                 width: 100%;
             }
         ');
+
 	}
 
 	/**
@@ -137,6 +138,15 @@ class HeadlessWP_Admin {
 			'manage_options',
 			'headlesswp',
 			[$this, 'display_about_page']
+		);
+
+		add_submenu_page(
+			'headlesswp',
+			__('OpenAPI', 'headlesswp'),
+			__('OpenAPI', 'headlesswp'),
+			'manage_options',
+			'headlesswp-openapi',
+			[$this, 'display_openapi_page']
 		);
 
 		add_submenu_page(
@@ -254,5 +264,17 @@ class HeadlessWP_Admin {
 
 		// Include the security settings page template
 		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/security.php';
+	}
+
+	/**
+	 * Display the OpenAPI page.
+	 */
+	public function display_openapi_page() {
+		if (!current_user_can('manage_options')) {
+			return;
+		}
+
+		// Include the openapi page template
+		include HEADLESSWP_PLUGIN_DIR . 'includes/admin/views/openapi.php';
 	}
 }

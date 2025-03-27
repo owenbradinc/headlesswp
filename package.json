@@ -1,0 +1,18 @@
+{
+  "name": "@weekendlabs/headlesswp",
+  "version": "0.1.0",
+  "description": "A WordPress plugin for headless WordPress functionality",
+  "scripts": {
+    "start": "wp-scripts start",
+    "build": "export NODE_OPTIONS=--openssl-legacy-provider && wp-scripts build"
+  },
+  "devDependencies": {
+    "@seriousme/openapi-schema-validator": "^2.0.2",
+    "@woocommerce/dependency-extraction-webpack-plugin": "1.4.0",
+    "@wordpress/scripts": "^13.0.3"
+  },
+  "dependencies": {
+    "@stoplight/elements": "^7.6.1",
+    "@wordpress/element": "^4.11.0"
+  }
+}
