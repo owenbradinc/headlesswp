@@ -1,1 +1,1 @@
-<?php return array('dependencies' => array('lodash'), 'version' => 'd0a66f6aa5c4b57e21a5e841dfe05cca');
+<?php return array('dependencies' => array('lodash'), 'version' => 'f873eb18fe5871d5313491b97b54ba44');

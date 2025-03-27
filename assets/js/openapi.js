@@ -18,21 +18,14 @@ function normalizeHeaders(headers) {
 }
 
 window.fetch = (resource, config) => {
-  if (!config) {
-    config = {};
-  }
+  // Initialize config
+  config = config || {};
 
-  if (!config.headers) {
-    config.headers = new Headers();
-  } else {
-    config.headers = normalizeHeaders(config.headers);
-  }
+  // Always initialize headers
+  config.headers = normalizeHeaders(config.headers || {});
 
-  if (
-    resource.indexOf("wp-json") !== false &&
-    config?.headers &&
-    config.headers.get("X-WP-Nonce") === null
-  ) {
+  // Check if URL contains wp-json and add nonce
+  if (resource.includes("wp-json")) {
     config.headers.set("X-WP-Nonce", window.openapi.nonce);
   }
 
