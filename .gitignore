@@ -3,10 +3,6 @@
 
 # generated directories/files
 node_modules/
-dist
-build
-build-module
-build-style
 
 # Composer
 /vendor/
