@@ -140,24 +140,11 @@ class HeadlessWP {
 	 */
 	private function init_openapi() {
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-openapi.php';
-
-		 // Filter to modify the Additional Info section of the OpenAPI Overview page
-		add_filter('headlesswp-filter-info', function($info) {
-			
-			// License info
-			$license = new HeadlessWP\OpenAPI\Spec\License(
-				'MIT',
-				'MIT',
-				'https://opensource.org/licenses/MIT'
-			);
-			
-			$info->setLicense($license);
-			$info->setTermsOfService('http://headlesswp.local/terms');
-			
-			return $info;
-		});
-
-
+		
+		// Register filters
+		HeadlessWP\OpenAPI\Filters\TagsFilter::register();
+		HeadlessWP\OpenAPI\Filters\OperationsFilter::register();
+		
 		$openapi = new HeadlessWP_OpenAPI($this->options['openapi'] ?? []);
 		$openapi->init();
 	}
