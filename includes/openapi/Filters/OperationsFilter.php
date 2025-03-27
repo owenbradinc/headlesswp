@@ -23,6 +23,35 @@ class OperationsFilter {
                     $operation->addTag($group);
                 }
             }
+
+            // Custom descriptions with Markdown for the posts endpoint
+            foreach ($path->getOperations() as $operation) {
+                // Example: Customize description based on path and method
+                if (strpos($originalPath, '/wp/v2/posts') !== false) {
+                    if ($operation->getMethod() === 'get') {
+                        $operation->setDescription(<<<MARKDOWN
+                            ## Posts Endpoint
+
+                            Returns a collection of posts from your WordPress site.
+
+                            ### Features
+                            - Supports pagination
+                            - Filter by category, tag, or author
+                            - Order by date, title, or other fields
+
+                            ### Example Usage
+                            ```javascript
+                            fetch('/wp-json/wp/v2/posts?per_page=5&orderby=date')
+                            .then(response => response.json())
+                            .then(posts => console.log(posts));
+                            ```
+
+                            *Note: Authentication may be required for certain post types.*
+                            MARKDOWN
+                        );
+                    }
+                }
+            }
         }
         
         return $paths;
