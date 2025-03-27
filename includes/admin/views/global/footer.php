@@ -17,8 +17,8 @@ if (!defined('ABSPATH')) {
 			<?php printf(
 				__('Copyright &copy; %s Weekend Labs, LLC. All Rights Reserved. | <a href="%s" target="_blank">Help</a> | <a href="%s" target="_blank">Support</a>', 'headlesswp'),
 				date('Y'),
-				'https://headlesswp.net/docs',
-				'https://headlesswp.net/support'
+				'https://headlesswp.com/docs',
+				'https://headlesswp.com/support'
 			); ?>
         </p>
     </div>

@@ -42,10 +42,15 @@ function headlesswp_admin_notices() {
         </nav>
     </div>
 </div>
+
+<?php if (!isset($hide_page_title) || !$hide_page_title): ?>
 <hr class="headlesswp-hr">
+
+
 <div class="headlesswp-admin-title">
     <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
 </div>
+<?php endif; ?>
 
 <!-- CSS to hide any notices that might slip through -->
 <style type="text/css">
