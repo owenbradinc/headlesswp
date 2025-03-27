@@ -6,7 +6,7 @@
   "autoload": {
     "psr-4": {
       "HeadlessWP\\": "includes/",
-      "HeadlessWP\\OpenAPI\\": "includes/openapi/src/"
+      "HeadlessWP\\OpenAPI\\": "includes/openapi/"
     }
   },
   "authors": [

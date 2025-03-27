@@ -10,6 +10,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use HeadlessWP\OpenAPI\SchemaGenerator;
+use HeadlessWP\OpenAPI\Filters;
+
 class HeadlessWP_OpenAPI {
     /**
      * Plugin options.
@@ -60,87 +63,24 @@ class HeadlessWP_OpenAPI {
      * @return WP_REST_Response
      */
     public function get_openapi_spec() {
-        // Get all registered routes
-        $server = rest_get_server();
-        $routes = $server->get_routes();
 
-        // Build paths from routes
-        $paths = [];
-        foreach ($routes as $route => $route_data) {
-            // Skip internal WordPress routes if desired
-            if (strpos($route, '/wp/v2/settings') === 0) {
-                continue;
-            }
-
-            $path = $this->convert_route_to_path($route);
-            $operations = [];
-
-            foreach ($route_data as $handler) {
-                if (isset($handler['methods'])) {
-                    foreach ($handler['methods'] as $method => $enabled) {
-                        if (!$enabled) continue;
-                        
-                        $method = strtolower($method);
-                        if ($method === 'options') continue;
-
-                        $operations[$method] = [
-                            'tags' => [$this->get_tag_from_route($route)],
-                            'summary' => isset($handler['description']) ? $handler['description'] : '',
-                            'parameters' => $this->get_parameters_for_endpoint($handler),
-                            'responses' => [
-                                '200' => [
-                                    'description' => 'Successful response',
-                                    'content' => [
-                                        'application/json' => [
-                                            'schema' => $this->get_response_schema($handler)
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ];
-
-                        // Add security if endpoint requires authentication
-                        if (!empty($handler['permission_callback'])) {
-                            $operations[$method]['security'] = [
-                                ['wp_auth' => []]
-                            ];
-                        }
-                    }
-                }
-            }
-
-            if (!empty($operations)) {
-                $paths[$path] = $operations;
-            }
-        }
-
-        $spec = [
-            'openapi' => '3.1.0',
-            'info' => [
-                'title' => get_bloginfo('name') . ' API',
-                'version' => HEADLESSWP_VERSION,
-                'description' => get_bloginfo('description'),
-            ],
-            'servers' => [
-                [
-                    'url' => rest_url(),
-                    'description' => 'WordPress REST API'
-                ]
-            ],
-            'paths' => $paths,
-            'components' => [
-                'securitySchemes' => [
-                    'wp_auth' => [
-                        'type' => 'apiKey',
-                        'name' => 'X-WP-Nonce',
-                        'in' => 'header',
-                        'description' => 'WordPress nonce authentication'
-                    ]
-                ]
-            ]
+         
+        $siteInfo = [
+            'admin_email' => get_option('admin_email'),
+            'blogname' => get_bloginfo('name'),
+            'blogdescription' => get_bloginfo('description'),
+            'home' => home_url(),
+            'wp_version' => get_bloginfo('version')
         ];
+        
+        $schemaGenerator = new SchemaGenerator(
+            Filters::getInstance(),
+            $siteInfo,
+            rest_get_server()
+        );
+        
+        return rest_ensure_response($schemaGenerator->generate('all'));
 
-        return rest_ensure_response($spec);
     }
 
     /**

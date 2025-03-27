@@ -93,6 +93,13 @@ class HeadlessWP {
 	 * Load the required dependencies.
 	 */
 	private function load_dependencies() {
+
+		// Load Composer autoloader
+		if (file_exists(HEADLESSWP_PLUGIN_DIR . 'vendor/autoload.php')) {
+			require_once HEADLESSWP_PLUGIN_DIR . 'vendor/autoload.php';
+		}
+
+
 		// Include class files
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-settings.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-admin.php';
