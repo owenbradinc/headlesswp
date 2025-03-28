@@ -94,11 +94,6 @@ class HeadlessWP {
 	 */
 	private function load_dependencies() {
 
-		// Load Composer autoloader
-		if (file_exists(HEADLESSWP_PLUGIN_DIR . 'vendor/autoload.php')) {
-			require_once HEADLESSWP_PLUGIN_DIR . 'vendor/autoload.php';
-		}
-
 
 		// Include class files
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-settings.php';
@@ -139,11 +134,38 @@ class HeadlessWP {
 	 * Initialize OpenAPI functionality
 	 */
 	private function init_openapi() {
+		// Base OpenAPI classes
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-openapi.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Callback.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/CallbackFinder.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Filters.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/SchemaGenerator.php';
+
+		// Config
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Config/ApiGroups.php';
+
+		// Filters
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Filters/AddCallbackInfoToDescription.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Filters/InfoFilter.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Filters/OperationsFilter.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Filters/TagsFilter.php';
+
+		// Spec
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Spec/Contact.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Spec/Info.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Spec/License.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Spec/Operation.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Spec/Parameter.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Spec/Path.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Spec/Response.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Spec/ResponseContent.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Spec/Server.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/openapi/Spec/Tag.php';
 		
 		// Register filters
 		HeadlessWP\OpenAPI\Filters\TagsFilter::register();
 		HeadlessWP\OpenAPI\Filters\OperationsFilter::register();
+		HeadlessWP\OpenAPI\Filters\InfoFilter::register();
 		
 		$openapi = new HeadlessWP_OpenAPI($this->options['openapi'] ?? []);
 		$openapi->init();
