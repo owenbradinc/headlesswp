@@ -61,6 +61,13 @@ class HeadlessWP {
 	protected $security;
 
 	/**
+	 * The API authentication class instance.
+	 *
+	 * @var HeadlessWP_API_Auth
+	 */
+	protected $api_auth;
+
+	/**
 	 * Initialize the plugin.
 	 */
 	public function __construct() {
@@ -87,20 +94,20 @@ class HeadlessWP {
 		$this->frontend = new HeadlessWP_Frontend($this->options);
 		$this->api = new HeadlessWP_API($this->options);
 		$this->security = new HeadlessWP_Security($this->options);
+		$this->api_auth = new HeadlessWP_API_Auth($this->options);
 	}
 
 	/**
 	 * Load the required dependencies.
 	 */
 	private function load_dependencies() {
-
-
 		// Include class files
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-settings.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-admin.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-frontend.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-api.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-cors.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-api-auth.php';
 	}
 
 	/**
@@ -116,6 +123,7 @@ class HeadlessWP {
 		$this->frontend->init();
 		$this->api->init();
 		$this->security->init();
+		$this->api_auth->init();
 		$this->init_openapi();
 	}
 

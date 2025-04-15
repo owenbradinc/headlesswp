@@ -45,14 +45,34 @@ class HeadlessWP_API_Auth {
 	 * Initialize authentication functionality.
 	 */
 	public function init() {
-		// Add authentication filter to REST API
-		add_filter('rest_authentication_errors', [$this, 'authenticate_api_key'], 15);
+		// Add our authentication filter
+		add_filter('rest_authentication_errors', [$this, 'authenticate_api_key'], 1);
+	}
 
-		// Add permissions check to REST API
-		add_filter('rest_pre_dispatch', [$this, 'check_api_permissions'], 10, 3);
+	/**
+	 * Disable REST API for non-admin users.
+	 *
+	 * @param WP_Error|null|bool $result Error from another authentication handler,
+	 *                                    null if no handler has been applied, true if authentication succeeded.
+	 * @return WP_Error|null|bool
+	 */
+	public function disable_rest_api($result) {
+		// If there is already an error, just return it
+		if (is_wp_error($result)) {
+			return $result;
+		}
 
-		// Add API key info to the API response
-		add_filter('rest_post_dispatch', [$this, 'add_api_info_headers'], 10, 3);
+		// If this is an admin request, allow it through
+		if (is_user_logged_in() && current_user_can('manage_options')) {
+			return $result;
+		}
+
+		// Return WP_Error object to disable REST API for everyone else
+		return new WP_Error(
+			'rest_disabled',
+			__('REST API is disabled.', 'headlesswp'),
+			['status' => 401]
+		);
 	}
 
 	/**
@@ -63,29 +83,27 @@ class HeadlessWP_API_Auth {
 	 * @return WP_Error|null|bool
 	 */
 	public function authenticate_api_key($result) {
-		// Pass through other authentication methods
-		if (null !== $result) {
+		// If there is already an error, just return it
+		if (is_wp_error($result)) {
 			return $result;
 		}
 
-		// Check if API keys are enabled and exist
-		if (empty($this->options['api_keys']) || !is_array($this->options['api_keys'])) {
-			return null;
+		// If this is an admin request, allow it through
+		if (is_user_logged_in() && current_user_can('manage_options')) {
+			return $result;
 		}
 
-		// Check for API key in headers (preferred method)
+		// Check for API key in headers
 		$api_key = $this->get_header('HTTP_X_WP_API_KEY');
 		$api_secret = $this->get_header('HTTP_X_WP_API_SECRET');
 
-		// If not in headers, check query parameters
+		// If no API key was provided, block access
 		if (empty($api_key) || empty($api_secret)) {
-			$api_key = isset($_REQUEST['api_key']) ? sanitize_text_field($_REQUEST['api_key']) : '';
-			$api_secret = isset($_REQUEST['api_secret']) ? sanitize_text_field($_REQUEST['api_secret']) : '';
-		}
-
-		// If no API key was provided, pass through to other authentication methods
-		if (empty($api_key) || empty($api_secret)) {
-			return null;
+			return new WP_Error(
+				'rest_disabled',
+				__('REST API is disabled. API key and secret are required.', 'headlesswp'),
+				['status' => 401]
+			);
 		}
 
 		// Verify API key
@@ -110,7 +128,19 @@ class HeadlessWP_API_Auth {
 		// Update last used timestamp
 		$this->update_key_last_used($api_key);
 
-		// Authentication successful, no need to continue with other authentication methods
+		// Check role-based permissions
+		$user = wp_get_current_user();
+		if ($user->exists()) {
+			// If user is logged in, check their role permissions
+			if (!$this->check_user_role_permissions($user, $key_data)) {
+				return new WP_Error(
+					'rest_forbidden_role',
+					__('Your user role does not have permission to access this endpoint.', 'headlesswp'),
+					['status' => 403]
+				);
+			}
+		}
+
 		return true;
 	}
 
@@ -334,6 +364,57 @@ class HeadlessWP_API_Auth {
 		foreach ($admin_routes as $admin_route) {
 			if (strpos($route, $admin_route) === 0) {
 				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if the user's role has permission to access the requested endpoint.
+	 *
+	 * @param WP_User $user The current user.
+	 * @param array $key_data The API key data.
+	 * @return bool
+	 */
+	protected function check_user_role_permissions($user, $key_data) {
+		// Get the current route
+		$route = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+		$route = str_replace('/wp-json/', '', $route);
+
+		// Define role-based permissions
+		$role_permissions = [
+			'administrator' => ['*'], // Access to all endpoints
+			'editor' => [
+				'wp/v2/posts',
+				'wp/v2/pages',
+				'wp/v2/media',
+				'wp/v2/categories',
+				'wp/v2/tags'
+			],
+			'author' => [
+				'wp/v2/posts',
+				'wp/v2/media'
+			],
+			'contributor' => [
+				'wp/v2/posts'
+			]
+		];
+
+		// Check if the user has any of the allowed roles
+		foreach ($user->roles as $role) {
+			if (isset($role_permissions[$role])) {
+				// If the role has access to all endpoints
+				if (in_array('*', $role_permissions[$role])) {
+					return true;
+				}
+
+				// Check if the current route is allowed for this role
+				foreach ($role_permissions[$role] as $allowed_route) {
+					if (strpos($route, $allowed_route) === 0) {
+						return true;
+					}
+				}
 			}
 		}
 
