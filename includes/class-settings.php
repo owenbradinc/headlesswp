@@ -40,6 +40,8 @@ class HeadlessWP_Settings {
 	public function init() {
 		// Register settings
 		add_action('admin_init', [$this, 'register_settings']);
+		// Add JavaScript for settings page
+		add_action('admin_footer', [$this, 'add_settings_js']);
 	}
 
 	/**
@@ -52,12 +54,72 @@ class HeadlessWP_Settings {
 			[$this, 'validate_options']
 		);
 
-		// General settings section
+		// API Settings section
 		add_settings_section(
-			'headlesswp_general',
-			__('General Settings', 'headlesswp'),
-			[$this, 'render_general_section'],
+			'headlesswp_api',
+			__('API Settings', 'headlesswp'),
+			[$this, 'render_api_section'],
 			'headlesswp'
+		);
+
+		// Add API URL structure field
+		add_settings_field(
+			'api_url_structure',
+			__('API URL Structure', 'headlesswp'),
+			[$this, 'render_api_url_structure'],
+			'headlesswp',
+			'headlesswp_api',
+			[
+				'id' => 'api_url_structure',
+				'description' => __('Choose the URL structure for your API endpoints.', 'headlesswp')
+			]
+		);
+
+		// Add custom API URL field
+		add_settings_field(
+			'custom_api_url',
+			__('Custom API URL', 'headlesswp'),
+			[$this, 'render_custom_api_url'],
+			'headlesswp',
+			'headlesswp_api',
+			[
+				'id' => 'custom_api_url',
+				'description' => __('Enter a custom API URL if you selected "Custom URL" above.', 'headlesswp')
+			]
+		);
+
+		// Redirect Settings section
+		add_settings_section(
+			'headlesswp_redirect',
+			__('Redirect Settings', 'headlesswp'),
+			[$this, 'render_redirect_section'],
+			'headlesswp'
+		);
+
+		// Add redirect URL field
+		add_settings_field(
+			'redirect_url',
+			__('Redirect URL', 'headlesswp'),
+			[$this, 'render_redirect_url'],
+			'headlesswp',
+			'headlesswp_redirect',
+			[
+				'id' => 'redirect_url',
+				'description' => __('Choose where to redirect the frontend when headless mode is enabled.', 'headlesswp')
+			]
+		);
+
+		// Add custom redirect URL field
+		add_settings_field(
+			'custom_redirect_url',
+			__('Custom Redirect URL', 'headlesswp'),
+			[$this, 'render_custom_redirect_url'],
+			'headlesswp',
+			'headlesswp_redirect',
+			[
+				'id' => 'custom_redirect_url',
+				'description' => __('Enter a custom redirect URL if you selected "Custom URL" above.', 'headlesswp')
+			]
 		);
 
 		// Add settings fields
@@ -75,47 +137,107 @@ class HeadlessWP_Settings {
 	}
 
 	/**
-	 * Validate plugin options.
+	 * Render the API settings section.
+	 */
+	public function render_api_section() {
+		echo '<p>' . __('Configure the URL structure for your API endpoints.', 'headlesswp') . '</p>';
+	}
+
+	/**
+	 * Render the redirect settings section.
+	 */
+	public function render_redirect_section() {
+		echo '<p>' . __('Configure where to redirect the frontend when headless mode is enabled.', 'headlesswp') . '</p>';
+	}
+
+	/**
+	 * Render the API URL structure field.
 	 *
-	 * @param array $input The options to validate.
-	 * @return array The validated options.
+	 * @param array $args Field arguments.
 	 */
-	public function validate_options($input) {
-		$output = [];
+	public function render_api_url_structure($args) {
+		$id = $args['id'];
+		$description = $args['description'];
+		$value = isset($this->options[$id]) ? $this->options[$id] : 'wp/v2';
 
-		// Validate checkboxes
-		$checkboxes = ['disable_themes', 'enable_cors', 'disable_frontend'];
-		foreach ($checkboxes as $checkbox) {
-			$output[$checkbox] = isset($input[$checkbox]) ? true : false;
+		$structures = [
+			'wp/v2' => __('WordPress v2 API (wp/v2) (Recommended)', 'headlesswp'),
+			'wp' => __('WordPress Old API (wp)', 'headlesswp'),
+			'api' => __('Custom API (/api)', 'headlesswp'),
+			'custom' => __('Custom URL', 'headlesswp'),
+		];
+
+		echo '<fieldset>';
+		foreach ($structures as $structure => $label) {
+			printf(
+				'<label><input type="radio" name="headlesswp_options[%s]" value="%s" %s> %s</label><br>',
+				esc_attr($id),
+				esc_attr($structure),
+				checked($value, $structure, false),
+				esc_html($label)
+			);
 		}
-
-		// Validate text fields
-		$output['allowed_origins'] = sanitize_text_field($input['allowed_origins']);
-
-		// Preserve custom endpoints and disabled endpoints
-		$output['custom_endpoints'] = isset($this->options['custom_endpoints']) ? $this->options['custom_endpoints'] : [];
-		if (isset($input['custom_endpoints']) && is_array($input['custom_endpoints'])) {
-			$output['custom_endpoints'] = $input['custom_endpoints'];
-		}
-
-		$output['disabled_endpoints'] = isset($this->options['disabled_endpoints']) ? $this->options['disabled_endpoints'] : [];
-
-		return $output;
+		echo '</fieldset>';
+		echo '<p class="description">' . esc_html($description) . '</p>';
 	}
 
 	/**
-	 * Render the general settings section.
+	 * Render the custom API URL field.
+	 *
+	 * @param array $args Field arguments.
 	 */
-	public function render_general_section() {
-		echo '<p>' . __('Configure the general settings for your headless WordPress installation.', 'headlesswp') . '</p>';
-		echo '<p>' . __('Note: The "Disable Frontend" setting has been moved to the Dashboard for easier access.', 'headlesswp') . '</p>';
+	public function render_custom_api_url($args) {
+		$id = $args['id'];
+		$description = $args['description'];
+		$value = isset($this->options[$id]) ? $this->options[$id] : '';
+		$api_structure = isset($this->options['api_url_structure']) ? $this->options['api_url_structure'] : 'wp/v2';
+
+		echo '<input type="text" id="' . esc_attr($id) . '" name="headlesswp_options[' . esc_attr($id) . ']" value="' . esc_attr($value) . '" class="regular-text" />';
+		echo '<p class="description">' . esc_html($description) . '</p>';
 	}
 
 	/**
-	 * Render the CORS settings section.
+	 * Render the redirect URL field.
+	 *
+	 * @param array $args Field arguments.
 	 */
-	public function render_cors_section() {
-		echo '<p>' . __('Configure Cross-Origin Resource Sharing (CORS) for your REST API.', 'headlesswp') . '</p>';
+	public function render_redirect_url($args) {
+		$id = $args['id'];
+		$description = $args['description'];
+		$value = isset($this->options[$id]) ? $this->options[$id] : 'api';
+
+		$options = [
+			'api' => __('API URL', 'headlesswp'),
+			'custom' => __('Custom URL', 'headlesswp'),
+		];
+
+		echo '<fieldset>';
+		foreach ($options as $option => $label) {
+			printf(
+				'<label><input type="radio" name="headlesswp_options[%s]" value="%s" %s> %s</label><br>',
+				esc_attr($id),
+				esc_attr($option),
+				checked($value, $option, false),
+				esc_html($label)
+			);
+		}
+		echo '</fieldset>';
+		echo '<p class="description">' . esc_html($description) . '</p>';
+	}
+
+	/**
+	 * Render the custom redirect URL field.
+	 *
+	 * @param array $args Field arguments.
+	 */
+	public function render_custom_redirect_url($args) {
+		$id = $args['id'];
+		$description = $args['description'];
+		$value = isset($this->options[$id]) ? $this->options[$id] : '';
+		$redirect_type = isset($this->options['redirect_url']) ? $this->options['redirect_url'] : 'api';
+
+		echo '<input type="text" id="' . esc_attr($id) . '" name="headlesswp_options[' . esc_attr($id) . ']" value="' . esc_attr($value) . '" class="regular-text" />';
+		echo '<p class="description">' . esc_html($description) . '</p>';
 	}
 
 	/**
@@ -144,5 +266,77 @@ class HeadlessWP_Settings {
 
 		echo '<input type="text" id="' . esc_attr($id) . '" name="headlesswp_options[' . esc_attr($id) . ']" value="' . esc_attr($value) . '" class="regular-text" />';
 		echo '<p class="description">' . esc_html($description) . '</p>';
+	}
+
+	/**
+	 * Validate plugin options.
+	 *
+	 * @param array $input The options to validate.
+	 * @return array The validated options.
+	 */
+	public function validate_options($input) {
+		$output = [];
+
+		// Validate checkboxes
+		$checkboxes = ['disable_themes', 'enable_cors', 'disable_frontend'];
+		foreach ($checkboxes as $checkbox) {
+			$output[$checkbox] = isset($input[$checkbox]) ? true : false;
+		}
+
+		// Validate API URL structure
+		$valid_structures = ['wp/v2', 'wp', 'api', 'custom'];
+		$output['api_url_structure'] = isset($input['api_url_structure']) && in_array($input['api_url_structure'], $valid_structures)
+			? $input['api_url_structure']
+			: 'wp/v2';
+
+		// Validate custom API URL
+		$output['custom_api_url'] = isset($input['custom_api_url']) ? esc_url_raw($input['custom_api_url']) : '';
+
+		// Validate redirect URL type
+		$valid_redirect_types = ['api', 'custom'];
+		$output['redirect_url'] = isset($input['redirect_url']) && in_array($input['redirect_url'], $valid_redirect_types)
+			? $input['redirect_url']
+			: 'api';
+
+		// Validate custom redirect URL
+		$output['custom_redirect_url'] = isset($input['custom_redirect_url']) ? esc_url_raw($input['custom_redirect_url']) : '';
+
+		// Validate text fields
+		$output['allowed_origins'] = sanitize_text_field($input['allowed_origins']);
+
+		// Preserve custom endpoints and disabled endpoints
+		$output['custom_endpoints'] = isset($this->options['custom_endpoints']) ? $this->options['custom_endpoints'] : [];
+		if (isset($input['custom_endpoints']) && is_array($input['custom_endpoints'])) {
+			$output['custom_endpoints'] = $input['custom_endpoints'];
+		}
+
+		$output['disabled_endpoints'] = isset($this->options['disabled_endpoints']) ? $this->options['disabled_endpoints'] : [];
+
+		return $output;
+	}
+
+	/**
+	 * Add JavaScript for settings page.
+	 */
+	public function add_settings_js() {
+		$screen = get_current_screen();
+		if ($screen->id !== 'toplevel_page_headlesswp') {
+			return;
+		}
+		?>
+		<script type="text/javascript">
+			jQuery(document).ready(function($) {
+				// Handle API URL input click
+				$('#custom_api_url').on('focus', function() {
+					$('input[name="headlesswp_options[api_url_structure]"][value="custom"]').prop('checked', true);
+				});
+
+				// Handle redirect URL input click
+				$('#custom_redirect_url').on('focus', function() {
+					$('input[name="headlesswp_options[redirect_url]"][value="custom"]').prop('checked', true);
+				});
+			});
+		</script>
+		<?php
 	}
 }

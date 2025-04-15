@@ -99,13 +99,26 @@ class HeadlessWP_Frontend {
 			return;
 		}
 
+		// Get redirect settings
+		$redirect_type = isset($this->options['redirect_url']) ? $this->options['redirect_url'] : 'api';
+		$custom_redirect_url = isset($this->options['custom_redirect_url']) ? $this->options['custom_redirect_url'] : '';
+
 		// Don't redirect if it's an API request
 		if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false) {
 			return;
 		}
 
-		// Redirect to the WordPress REST API
-		wp_redirect(rest_url('wp/v2'));
+		// Determine redirect URL
+		if ($redirect_type === 'custom' && !empty($custom_redirect_url)) {
+			$redirect_url = $custom_redirect_url;
+		} else {
+			// Get API URL structure
+			$api_structure = isset($this->options['api_url_structure']) ? $this->options['api_url_structure'] : 'wp/v2';
+			$redirect_url = rest_url($api_structure);
+		}
+
+		// Redirect to the selected URL
+		wp_redirect($redirect_url);
 		exit;
 	}
 }
