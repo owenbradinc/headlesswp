@@ -84,13 +84,10 @@ class HeadlessWP_Settings {
 		$output = [];
 
 		// Validate checkboxes
-		$checkboxes = ['disable_themes', 'enable_cors'];
+		$checkboxes = ['disable_themes', 'enable_cors', 'disable_frontend'];
 		foreach ($checkboxes as $checkbox) {
 			$output[$checkbox] = isset($input[$checkbox]) ? true : false;
 		}
-
-		// Preserve the disable_frontend setting which is now managed on the dashboard
-		$output['disable_frontend'] = isset($this->options['disable_frontend']) ? $this->options['disable_frontend'] : false;
 
 		// Validate text fields
 		$output['allowed_origins'] = sanitize_text_field($input['allowed_origins']);

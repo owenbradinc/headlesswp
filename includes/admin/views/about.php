@@ -15,7 +15,7 @@ if (isset($_POST['headlesswp_dashboard_options']) && current_user_can('manage_op
 	check_admin_referer('headlesswp_dashboard_options', 'headlesswp_dashboard_nonce');
 
 	$options = get_option('headlesswp_options', array());
-	$options['disable_frontend'] = isset($_POST['disable_frontend']) ? true : false;
+	$options['disable_frontend'] = isset($_POST['headlesswp_options']['disable_frontend']) ? true : false;
 
 	update_option('headlesswp_options', $options);
 
@@ -69,7 +69,7 @@ $disabled_endpoints = isset($options['disabled_endpoints']) ? count($options['di
 
                 <div class="headlesswp-toggle-container">
                     <label class="headlesswp-toggle-switch">
-                        <input type="checkbox" name="disable_frontend" <?php checked($disable_frontend, true); ?>>
+                        <input type="checkbox" name="headlesswp_options[disable_frontend]" <?php checked($disable_frontend, true); ?>>
                         <span class="headlesswp-toggle-slider"></span>
                     </label>
                     <span class="headlesswp-toggle-label">
