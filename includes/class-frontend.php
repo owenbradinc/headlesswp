@@ -94,13 +94,18 @@ class HeadlessWP_Frontend {
 			return;
 		}
 
-		// Don't redirect WP-JSON requests
+		// Don't redirect if not on the homepage
+		if (!is_home() && !is_front_page()) {
+			return;
+		}
+
+		// Don't redirect if it's an API request
 		if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false) {
 			return;
 		}
 
-		// Redirect to the REST API root
-		wp_redirect(rest_url());
+		// Redirect to the WordPress REST API
+		wp_redirect(rest_url('wp/v2'));
 		exit;
 	}
 }
