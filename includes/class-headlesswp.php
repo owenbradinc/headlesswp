@@ -92,7 +92,6 @@ class HeadlessWP {
 		$this->settings = new HeadlessWP_Settings($this->options);
 		$this->admin = new HeadlessWP_Admin($this->options);
 		$this->frontend = new HeadlessWP_Frontend($this->options);
-		$this->api = new HeadlessWP_API($this->options);
 		$this->security = new HeadlessWP_Security($this->options);
 		$this->api_auth = new HeadlessWP_API_Auth($this->options);
 	}
@@ -105,7 +104,6 @@ class HeadlessWP {
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-settings.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-admin.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-frontend.php';
-		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-api.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-cors.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-api-auth.php';
 	}
@@ -121,7 +119,6 @@ class HeadlessWP {
 		$this->settings->init();
 		$this->admin->init();
 		$this->frontend->init();
-		$this->api->init();
 		$this->security->init();
 		$this->api_auth->init();
 		$this->init_openapi();

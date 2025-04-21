@@ -12,8 +12,15 @@ if (!defined('ABSPATH')) {
 
 // Get current options
 $options = get_option('headlesswp_options', array());
+if (!is_array($options)) {
+	$options = array();
+}
 $api_keys = isset($options['api_keys']) ? $options['api_keys'] : array();
 $cors_origins = isset($options['cors_origins']) ? $options['cors_origins'] : array();
+
+// Debug output
+error_log('Current options: ' . print_r($options, true));
+error_log('Current API keys: ' . print_r($api_keys, true));
 
 // Process form submissions
 if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_options')) {
@@ -23,6 +30,8 @@ if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_optio
 	$key_description = sanitize_text_field($_POST['key_description']);
 	$key_permissions = isset($_POST['key_permissions']) ? sanitize_text_field($_POST['key_permissions']) : 'read';
 	$selected_origins = isset($_POST['key_origins']) ? array_map('sanitize_text_field', $_POST['key_origins']) : array();
+
+	error_log('Form submitted with data: ' . print_r($_POST, true));
 
 	if (empty($key_name)) {
 		add_settings_error(
@@ -37,8 +46,8 @@ if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_optio
 		$api_key_plain = $api_key; // Store the plain key for display
 		$api_key = wp_hash_password($api_key); // Hash the key for storage
 
-		// Add to options
-		$options['api_keys'][] = array(
+		// Create new key array
+		$new_key = array(
 			'id' => uniqid('key_'),
 			'name' => $key_name,
 			'description' => $key_description,
@@ -49,19 +58,37 @@ if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_optio
 			'last_used' => '',
 		);
 
-		update_option('headlesswp_options', $options);
+		// Ensure api_keys array exists
+		if (!isset($options['api_keys']) || !is_array($options['api_keys'])) {
+			$options['api_keys'] = array();
+		}
 
-		// Set transient to display the newly created key (using the plain key)
-		set_transient('headlesswp_new_api_key', array(
-			'key' => $api_key_plain
-		), 60);
+		// Add new key to array
+		$options['api_keys'][] = $new_key;
 
-		add_settings_error(
-			'headlesswp_api_keys',
-			'key_created',
-			__('API key created successfully.', 'headlesswp'),
-			'success'
-		);
+		// Save the entire options array
+		$result = update_option('headlesswp_options', $options);
+
+		if ($result) {
+			// Set transient to display the newly created key (using the plain key)
+			set_transient('headlesswp_new_api_key', array(
+				'key' => $api_key_plain
+			), 60);
+
+			add_settings_error(
+				'headlesswp_api_keys',
+				'key_created',
+				__('API key created successfully.', 'headlesswp'),
+				'success'
+			);
+		} else {
+			add_settings_error(
+				'headlesswp_api_keys',
+				'key_save_error',
+				__('Failed to save API key. Please try again.', 'headlesswp'),
+				'error'
+			);
+		}
 
 		// Refresh the page data
 		$options = get_option('headlesswp_options', array());

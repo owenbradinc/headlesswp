@@ -26,22 +26,29 @@ define('HEADLESSWP_PLUGIN_BASENAME', plugin_basename(__FILE__));
  */
 function activate_headlesswp() {
 	// Initialize default options if they don't exist
-	if (!get_option('headlesswp_options')) {
-		update_option('headlesswp_options', [
+	$current_options = get_option('headlesswp_options');
+	
+	if ($current_options === false) {
+		// No options exist, create new ones
+		$default_options = array(
 			'disable_themes' => false,
 			'disable_frontend' => false,
 			'enable_cors' => true,
 			'allow_all_origins' => false,
-			'cors_origins' => [],
-			'custom_endpoints' => [],
-			'api_keys' => []
-		]);
+			'cors_origins' => array(),
+			'custom_endpoints' => array(),
+			'api_keys' => array()
+		);
+		update_option('headlesswp_options', $default_options);
 	} else {
-		// If options exist but api_keys is missing, add it
-		$options = get_option('headlesswp_options');
-		if (!isset($options['api_keys'])) {
-			$options['api_keys'] = [];
-			update_option('headlesswp_options', $options);
+		// Options exist, ensure api_keys exists
+		if (!is_array($current_options)) {
+			$current_options = array();
+		}
+		
+		if (!isset($current_options['api_keys']) || !is_array($current_options['api_keys'])) {
+			$current_options['api_keys'] = array();
+			update_option('headlesswp_options', $current_options);
 		}
 	}
 
