@@ -21,17 +21,9 @@ $cors_origins = isset($options['cors_origins']) ? $options['cors_origins'] : arr
 $headlesswp = HeadlessWP::get_instance();
 $api_keys = $headlesswp->get_api_keys();
 
-// Check for newly created key
-$new_key = get_transient('headlesswp_new_api_key');
-error_log('HeadlessWP: Retrieved transient data: ' . print_r($new_key, true));
-if ($new_key) {
-	delete_transient('headlesswp_new_api_key');
-}
-
 // Debug output
 error_log('HeadlessWP: Current options: ' . print_r($options, true));
 error_log('HeadlessWP: Current API keys: ' . print_r($api_keys, true));
-error_log('HeadlessWP: New key for display: ' . print_r($new_key, true));
 
 // Process form submissions
 if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_options')) {
@@ -68,6 +60,7 @@ if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_optio
 			);
 			error_log('HeadlessWP: Setting transient with data: ' . print_r($transient_data, true));
 			set_transient('headlesswp_new_api_key', $transient_data, 60);
+			wp_cache_flush(); // Force flush the cache to ensure transient is available
 
 			add_settings_error(
 				'headlesswp_api_keys',
@@ -89,6 +82,16 @@ if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_optio
 		$api_keys = $headlesswp->get_api_keys();
 	}
 }
+
+// Check for newly created key - moved after form processing
+$new_key = get_transient('headlesswp_new_api_key');
+error_log('HeadlessWP: Retrieved transient data: ' . print_r($new_key, true));
+if ($new_key) {
+	delete_transient('headlesswp_new_api_key');
+}
+
+// Debug output
+error_log('HeadlessWP: New key for display: ' . print_r($new_key, true));
 
 // Handle API key revocation
 if (isset($_POST['headlesswp_revoke_api_key']) && current_user_can('manage_options')) {
