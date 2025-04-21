@@ -33,6 +33,13 @@ class HeadlessWP {
 	protected $options;
 
 	/**
+	 * Plugin security options.
+	 *
+	 * @var array
+	 */
+	protected $security_options;
+
+	/**
 	 * The settings class instance.
 	 *
 	 * @var HeadlessWP_Settings
@@ -63,9 +70,9 @@ class HeadlessWP {
 	/**
 	 * The CORS class instance.
 	 *
-	 * @var HeadlessWP_Security
+	 * @var HeadlessWP_CORS
 	 */
-	protected $security;
+	protected $cors;
 
 	/**
 	 * The API authentication class instance.
@@ -101,14 +108,18 @@ class HeadlessWP {
 		$this->options = get_option('headlesswp_options', [
 			'disable_themes' => false,
 			'disable_frontend' => false,
-			'enable_cors' => true,
-			'allow_all_origins' => false,
-			'cors_origins' => [],
 			'custom_endpoints' => [],
 			'openapi' => [
 				'enable_try_it' => true,
 				'enable_callback_discovery' => true
 			]
+		]);
+
+		// Load security options with default values
+		$this->security_options = get_option('headlesswp_security_options', [
+			'enable_cors' => true,
+			'allow_all_origins' => false,
+			'cors_origins' => []
 		]);
 
 		// Load required files
@@ -118,7 +129,7 @@ class HeadlessWP {
 		$this->settings = new HeadlessWP_Settings($this->options);
 		$this->admin = new HeadlessWP_Admin($this->options);
 		$this->frontend = new HeadlessWP_Frontend($this->options);
-		$this->security = new HeadlessWP_Security($this->options);
+		$this->cors = new HeadlessWP_CORS($this->security_options);  // Pass security options to CORS handler
 		$this->api_auth = new HeadlessWP_API_Auth($this->options);
 		$this->api_keys = new HeadlessWP_API_Keys();
 	}
@@ -147,7 +158,7 @@ class HeadlessWP {
 		$this->settings->init();
 		$this->admin->init();
 		$this->frontend->init();
-		$this->security->init();
+		$this->cors->init();
 		$this->api_auth->init();
 		$this->init_openapi();
 	}

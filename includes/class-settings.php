@@ -50,7 +50,7 @@ class HeadlessWP_Settings {
         // Register security settings
         register_setting(
             'headlesswp_security_options',
-            'headlesswp_options',
+            'headlesswp_security_options',
             [$this, 'validate_security_options']
         );
 
@@ -189,11 +189,15 @@ class HeadlessWP_Settings {
      * @return array The validated options.
      */
     public function validate_security_options($input) {
-        $output = $this->options; // Keep existing options
+        // Get current options
+        $current_options = get_option('headlesswp_security_options', array());
         
-        // CORS settings
-        $output['enable_cors'] = isset($input['enable_cors']) ? true : false;
-        $output['allow_all_origins'] = isset($input['allow_all_origins']) ? true : false;
+        // Initialize output with current options
+        $output = $current_options;
+        
+        // CORS settings - explicitly set to false if not in input
+        $output['enable_cors'] = !empty($input['enable_cors']);
+        $output['allow_all_origins'] = !empty($input['allow_all_origins']);
         
         // Process origins
         $origins = array();
@@ -213,6 +217,14 @@ class HeadlessWP_Settings {
             }
         }
         $output['cors_origins'] = $origins;
+        
+        // Add success message
+        add_settings_error(
+            'headlesswp_security_options',
+            'settings_updated',
+            __('Security settings saved successfully.', 'headlesswp'),
+            'updated'
+        );
         
         return $output;
     }

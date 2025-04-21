@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Initialize options
-$options = get_option('headlesswp_options', array(
+$options = get_option('headlesswp_security_options', array(
     'enable_cors' => false,
     'allow_all_origins' => false,
     'cors_origins' => array()
@@ -39,6 +39,7 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
             <form method="post" action="options.php">
 				<?php 
                 settings_fields('headlesswp_security_options');
+                wp_nonce_field('headlesswp_security_options', 'headlesswp_security_nonce');
                 ?>
 
                 <!-- CORS Settings -->
@@ -51,7 +52,7 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
                         <td>
                             <fieldset>
                                 <label for="enable_cors">
-                                    <input name="headlesswp_options[enable_cors]" type="checkbox" id="enable_cors" value="1" <?php checked(isset($options['enable_cors']) ? $options['enable_cors'] : false); ?>>
+                                    <input name="headlesswp_security_options[enable_cors]" type="checkbox" id="enable_cors" value="1" <?php checked(isset($options['enable_cors']) ? $options['enable_cors'] : false); ?>>
 									<?php _e('Enable Cross-Origin Resource Sharing for the REST API', 'headlesswp'); ?>
                                 </label>
                             </fieldset>
@@ -62,7 +63,7 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
                         <td>
                             <fieldset>
                                 <label for="allow_all_origins">
-                                    <input name="headlesswp_options[allow_all_origins]" type="checkbox" id="allow_all_origins" value="1" <?php checked(isset($options['allow_all_origins']) ? $options['allow_all_origins'] : false); ?>>
+                                    <input name="headlesswp_security_options[allow_all_origins]" type="checkbox" id="allow_all_origins" value="1" <?php checked(isset($options['allow_all_origins']) ? $options['allow_all_origins'] : false); ?>>
 									<?php _e('Allow requests from all origins (not recommended for production)', 'headlesswp'); ?>
                                 </label>
                             </fieldset>
@@ -92,15 +93,15 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
 								?>
                                 <tr>
                                     <td>
-                                        <input type="hidden" name="headlesswp_options[origin_id][<?php echo $index; ?>]" value="<?php echo esc_attr($origin_id); ?>">
+                                        <input type="hidden" name="headlesswp_security_options[origin_id][<?php echo $index; ?>]" value="<?php echo esc_attr($origin_id); ?>">
                                         <input type="text" class="regular-text"
-                                               name="headlesswp_options[origin][<?php echo $index; ?>]"
+                                               name="headlesswp_security_options[origin][<?php echo $index; ?>]"
                                                value="<?php echo esc_attr($origin_data['origin']); ?>"
                                                placeholder="https://example.com">
                                     </td>
                                     <td>
                                         <input type="text" class="regular-text"
-                                               name="headlesswp_options[origin_description][<?php echo $index; ?>]"
+                                               name="headlesswp_security_options[origin_description][<?php echo $index; ?>]"
                                                value="<?php echo isset($origin_data['description']) ? esc_attr($origin_data['description']) : ''; ?>"
                                                placeholder="<?php _e('Frontend application', 'headlesswp'); ?>">
                                     </td>
@@ -165,59 +166,38 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
                 const originId = 'origin_' + Math.random().toString(36).substr(2, 9);
 
                 // Create a new row
-                const newRow = `
-                    <tr>
-                        <td>
-                            <input type="hidden" name="headlesswp_options[origin_id][${index}]" value="${originId}">
-                            <input type="text" class="regular-text"
-                                name="headlesswp_options[origin][${index}]"
-                                value="${origin}">
-                        </td>
-                        <td>
-                            <input type="text" class="regular-text"
-                                name="headlesswp_options[origin_description][${index}]"
-                                value="${description}">
-                        </td>
-                        <td>
-                            <button type="button" class="button remove-origin"><?php _e('Remove', 'headlesswp'); ?></button>
-                        </td>
-                    </tr>
-                `;
+                const newRow = $('<tr>');
+                newRow.append(`
+                    <td>
+                        <input type="hidden" name="headlesswp_security_options[origin_id][${index}]" value="${originId}">
+                        <input type="text" class="regular-text" name="headlesswp_security_options[origin][${index}]" value="${origin}" placeholder="https://example.com">
+                    </td>
+                    <td>
+                        <input type="text" class="regular-text" name="headlesswp_security_options[origin_description][${index}]" value="${description}" placeholder="<?php _e('Frontend application', 'headlesswp'); ?>">
+                    </td>
+                    <td>
+                        <button type="button" class="button remove-origin"><?php _e('Remove', 'headlesswp'); ?></button>
+                    </td>
+                `);
 
-                // Hide the "no origins" message
+                // Add the new row and hide the "no origins" message
                 $('.no-origins').addClass('hidden');
-
-                // Add the new row before the last row (which is the input form)
                 $('#cors-origins-table tbody').append(newRow);
 
-                // Clear the inputs
+                // Clear the input fields
                 $('#new-origin').val('');
                 $('#new-description').val('');
             });
 
-            // Remove origin (use event delegation for dynamically added elements)
-            $('#cors-origins-table').on('click', '.remove-origin', function() {
+            // Remove origin
+            $(document).on('click', '.remove-origin', function() {
                 $(this).closest('tr').remove();
-
-                // Show the "no origins" message if there are no origins
+                
+                // Show "no origins" message if no origins left
                 if ($('#cors-origins-table tbody tr').not('.no-origins').length === 0) {
                     $('.no-origins').removeClass('hidden');
                 }
-
-                // Reindex the form fields to prevent gaps in the array
-                reindexOrigins();
             });
-
-            // Function to reindex the form fields
-            function reindexOrigins() {
-                $('#cors-origins-table tbody tr').not('.no-origins').each(function(index) {
-                    $(this).find('input').each(function() {
-                        const name = $(this).attr('name');
-                        const newName = name.replace(/\[\d+\]/, '[' + index + ']');
-                        $(this).attr('name', newName);
-                    });
-                });
-            }
         });
     </script>
 

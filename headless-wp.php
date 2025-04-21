@@ -27,15 +27,13 @@ define('HEADLESSWP_PLUGIN_BASENAME', plugin_basename(__FILE__));
 function activate_headlesswp() {
 	// Initialize default options if they don't exist
 	$current_options = get_option('headlesswp_options');
+	$current_security_options = get_option('headlesswp_security_options');
 	
 	if ($current_options === false) {
 		// No options exist, create new ones
 		$default_options = array(
 			'disable_themes' => false,
 			'disable_frontend' => false,
-			'enable_cors' => true,
-			'allow_all_origins' => false,
-			'cors_origins' => array(),
 			'custom_endpoints' => array(),
 			'openapi' => [
 				'enable_try_it' => true,
@@ -43,6 +41,16 @@ function activate_headlesswp() {
 			]
 		);
 		update_option('headlesswp_options', $default_options);
+	}
+
+	if ($current_security_options === false) {
+		// No security options exist, create new ones
+		$default_security_options = array(
+			'enable_cors' => true,
+			'allow_all_origins' => false,
+			'cors_origins' => array()
+		);
+		update_option('headlesswp_security_options', $default_security_options);
 	}
 
 	// Create required directories
