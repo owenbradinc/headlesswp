@@ -33,12 +33,20 @@ class HeadlessWP_API_Auth {
 	protected $current_api_key = null;
 
 	/**
+	 * The API keys handler instance.
+	 *
+	 * @var HeadlessWP_API_Keys
+	 */
+	protected $api_keys;
+
+	/**
 	 * Initialize the class and set its properties.
 	 *
 	 * @param array $options Plugin options.
 	 */
 	public function __construct($options) {
 		$this->options = $options;
+		$this->api_keys = new HeadlessWP_API_Keys();
 	}
 
 	/**
@@ -244,28 +252,7 @@ class HeadlessWP_API_Auth {
 	 * @return array|WP_Error API key data or error.
 	 */
 	protected function verify_api_key($api_key) {
-		// Get API keys from options
-		$api_keys = $this->options['api_keys'];
-
-		// Find the key by checking each hashed key
-		$key_data = null;
-		foreach ($api_keys as $key) {
-			if (wp_check_password($api_key, $key['key'])) {
-				$key_data = $key;
-				break;
-			}
-		}
-
-		// If key not found
-		if (null === $key_data) {
-			return new WP_Error(
-				'rest_invalid_api_key',
-				__('Invalid API key.', 'headlesswp'),
-				['status' => 401]
-			);
-		}
-
-		return $key_data;
+		return $this->api_keys->verify_key($api_key);
 	}
 
 	/**
@@ -274,21 +261,9 @@ class HeadlessWP_API_Auth {
 	 * @param string $api_key API key.
 	 */
 	protected function update_key_last_used($api_key) {
-		// Update last used timestamp
-		$api_keys = $this->options['api_keys'];
-		$updated = false;
-
-		foreach ($api_keys as $index => $key) {
-			if ($key['key'] === $api_key) {
-				$api_keys[$index]['last_used'] = current_time('mysql');
-				$updated = true;
-				break;
-			}
-		}
-
-		if ($updated) {
-			$this->options['api_keys'] = $api_keys;
-			update_option('headlesswp_options', $this->options);
+		$key_data = $this->verify_api_key($api_key);
+		if (!is_wp_error($key_data)) {
+			$this->api_keys->update_last_used($key_data['id']);
 		}
 	}
 

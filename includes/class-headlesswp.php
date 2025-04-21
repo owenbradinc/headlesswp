@@ -19,6 +19,13 @@ if (!defined('ABSPATH')) {
 class HeadlessWP {
 
 	/**
+	 * The single instance of the class.
+	 *
+	 * @var HeadlessWP
+	 */
+	protected static $instance = null;
+
+	/**
 	 * Plugin options.
 	 *
 	 * @var array
@@ -68,6 +75,25 @@ class HeadlessWP {
 	protected $api_auth;
 
 	/**
+	 * The API keys handler instance.
+	 *
+	 * @var HeadlessWP_API_Keys
+	 */
+	protected $api_keys;
+
+	/**
+	 * Get the singleton instance.
+	 *
+	 * @return HeadlessWP
+	 */
+	public static function get_instance() {
+		if (null === self::$instance) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
 	 * Initialize the plugin.
 	 */
 	public function __construct() {
@@ -94,6 +120,7 @@ class HeadlessWP {
 		$this->frontend = new HeadlessWP_Frontend($this->options);
 		$this->security = new HeadlessWP_Security($this->options);
 		$this->api_auth = new HeadlessWP_API_Auth($this->options);
+		$this->api_keys = new HeadlessWP_API_Keys();
 	}
 
 	/**
@@ -106,6 +133,7 @@ class HeadlessWP {
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-frontend.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-cors.php';
 		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-api-auth.php';
+		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-api-keys.php';
 	}
 
 	/**
@@ -174,5 +202,37 @@ class HeadlessWP {
 		
 		$openapi = new HeadlessWP_OpenAPI($this->options['openapi'] ?? []);
 		$openapi->init();
+	}
+
+	/**
+	 * Get all API keys
+	 *
+	 * @return array
+	 */
+	public function get_api_keys() {
+		return $this->api_keys->get_keys();
+	}
+
+	/**
+	 * Add a new API key
+	 *
+	 * @param string $name Key name
+	 * @param string $description Key description
+	 * @param string $permissions Key permissions
+	 * @param array $origins Allowed origins
+	 * @return array|WP_Error The new key data or WP_Error on failure
+	 */
+	public function add_api_key($name, $description = '', $permissions = 'read', $origins = []) {
+		return $this->api_keys->add_key($name, $description, $permissions, $origins);
+	}
+
+	/**
+	 * Revoke an API key
+	 *
+	 * @param string $key_id The key ID to revoke
+	 * @return bool|WP_Error True on success, WP_Error on failure
+	 */
+	public function revoke_api_key($key_id) {
+		return $this->api_keys->revoke_key($key_id);
 	}
 }

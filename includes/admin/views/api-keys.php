@@ -15,12 +15,23 @@ $options = get_option('headlesswp_options', array());
 if (!is_array($options)) {
 	$options = array();
 }
-$api_keys = isset($options['api_keys']) ? $options['api_keys'] : array();
 $cors_origins = isset($options['cors_origins']) ? $options['cors_origins'] : array();
 
+// Get API keys from database
+$headlesswp = HeadlessWP::get_instance();
+$api_keys = $headlesswp->get_api_keys();
+
+// Check for newly created key
+$new_key = get_transient('headlesswp_new_api_key');
+error_log('HeadlessWP: Retrieved transient data: ' . print_r($new_key, true));
+if ($new_key) {
+	delete_transient('headlesswp_new_api_key');
+}
+
 // Debug output
-error_log('Current options: ' . print_r($options, true));
-error_log('Current API keys: ' . print_r($api_keys, true));
+error_log('HeadlessWP: Current options: ' . print_r($options, true));
+error_log('HeadlessWP: Current API keys: ' . print_r($api_keys, true));
+error_log('HeadlessWP: New key for display: ' . print_r($new_key, true));
 
 // Process form submissions
 if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_options')) {
@@ -33,47 +44,30 @@ if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_optio
 
 	error_log('Form submitted with data: ' . print_r($_POST, true));
 
-	if (empty($key_name)) {
+	// Get the main plugin instance
+	$headlesswp = HeadlessWP::get_instance();
+
+	// Add the new API key
+	$result = $headlesswp->add_api_key($key_name, $key_description, $key_permissions, $selected_origins);
+	error_log('HeadlessWP: Result from add_api_key: ' . print_r($result, true));
+
+	if (is_wp_error($result)) {
+		error_log('HeadlessWP: Error creating API key: ' . $result->get_error_message());
 		add_settings_error(
 			'headlesswp_api_keys',
-			'empty_key_name',
-			__('Please provide a name for your API key.', 'headlesswp'),
+			$result->get_error_code(),
+			$result->get_error_message(),
 			'error'
 		);
 	} else {
-		// Generate a unique key
-		$api_key = 'hwp_' . wp_generate_password(32, false, false);
-		$api_key_plain = $api_key; // Store the plain key for display
-		$api_key = wp_hash_password($api_key); // Hash the key for storage
-
-		// Create new key array
-		$new_key = array(
-			'id' => uniqid('key_'),
-			'name' => $key_name,
-			'description' => $key_description,
-			'key' => $api_key,
-			'permissions' => $key_permissions,
-			'origins' => $selected_origins,
-			'created' => current_time('mysql'),
-			'last_used' => '',
-		);
-
-		// Ensure api_keys array exists
-		if (!isset($options['api_keys']) || !is_array($options['api_keys'])) {
-			$options['api_keys'] = array();
-		}
-
-		// Add new key to array
-		$options['api_keys'][] = $new_key;
-
-		// Save the entire options array
-		$result = update_option('headlesswp_options', $options);
-
-		if ($result) {
-			// Set transient to display the newly created key (using the plain key)
-			set_transient('headlesswp_new_api_key', array(
-				'key' => $api_key_plain
-			), 60);
+		// Verify we have a key before setting the transient
+		if (isset($result['api_key']) && !empty($result['api_key'])) {
+			// Set transient to display the newly created key
+			$transient_data = array(
+				'api_key' => $result['api_key']
+			);
+			error_log('HeadlessWP: Setting transient with data: ' . print_r($transient_data, true));
+			set_transient('headlesswp_new_api_key', $transient_data, 60);
 
 			add_settings_error(
 				'headlesswp_api_keys',
@@ -82,17 +76,17 @@ if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_optio
 				'success'
 			);
 		} else {
+			error_log('HeadlessWP: No key returned from add_api_key');
 			add_settings_error(
 				'headlesswp_api_keys',
-				'key_save_error',
-				__('Failed to save API key. Please try again.', 'headlesswp'),
+				'key_error',
+				__('Failed to generate API key.', 'headlesswp'),
 				'error'
 			);
 		}
 
 		// Refresh the page data
-		$options = get_option('headlesswp_options', array());
-		$api_keys = isset($options['api_keys']) ? $options['api_keys'] : array();
+		$api_keys = $headlesswp->get_api_keys();
 	}
 }
 
@@ -102,35 +96,32 @@ if (isset($_POST['headlesswp_revoke_api_key']) && current_user_can('manage_optio
 
 	$key_id = sanitize_text_field($_POST['key_id']);
 
-	if (!empty($key_id) && !empty($options['api_keys'])) {
-		foreach ($options['api_keys'] as $index => $key) {
-			if ($key['id'] === $key_id) {
-				unset($options['api_keys'][$index]);
-				break;
-			}
+	if (!empty($key_id)) {
+		// Get the main plugin instance
+		$headlesswp = HeadlessWP::get_instance();
+
+		// Revoke the API key
+		$result = $headlesswp->revoke_api_key($key_id);
+
+		if (is_wp_error($result)) {
+			add_settings_error(
+				'headlesswp_api_keys',
+				$result->get_error_code(),
+				$result->get_error_message(),
+				'error'
+			);
+		} else {
+			add_settings_error(
+				'headlesswp_api_keys',
+				'key_revoked',
+				__('API key revoked successfully.', 'headlesswp'),
+				'success'
+			);
+
+			// Refresh the page data
+			$api_keys = $headlesswp->get_api_keys();
 		}
-
-		// Re-index the array
-		$options['api_keys'] = array_values($options['api_keys']);
-		update_option('headlesswp_options', $options);
-
-		add_settings_error(
-			'headlesswp_api_keys',
-			'key_revoked',
-			__('API key revoked successfully.', 'headlesswp'),
-			'success'
-		);
-
-		// Refresh the page data
-		$options = get_option('headlesswp_options', array());
-		$api_keys = isset($options['api_keys']) ? $options['api_keys'] : array();
 	}
-}
-
-// Check for newly created key
-$new_key = get_transient('headlesswp_new_api_key');
-if ($new_key) {
-	delete_transient('headlesswp_new_api_key');
 }
 ?>
 
@@ -140,7 +131,8 @@ if ($new_key) {
 	<div class="headlesswp-admin-content">
 		<?php settings_errors('headlesswp_api_keys'); ?>
 
-		<?php if ($new_key): ?>
+		<?php if (isset($new_key) && !empty($new_key)): ?>
+			<?php error_log('HeadlessWP: Displaying new key: ' . print_r($new_key, true)); ?>
 			<div class="headlesswp-card headlesswp-new-key-notice">
 				<h3><?php _e('Your new API key has been created', 'headlesswp'); ?></h3>
 				<p><?php _e('Be sure to copy your API key now. For security reasons, we will only show the API key once.', 'headlesswp'); ?></p>
@@ -149,7 +141,8 @@ if ($new_key) {
 					<div class="headlesswp-copy-field">
 						<label><?php _e('API Key:', 'headlesswp'); ?></label>
 						<div class="headlesswp-copy-container">
-							<input type="text" value="<?php echo esc_attr($new_key['key']); ?>" readonly class="headlesswp-copy-text" id="new-api-key">
+							<?php error_log('HeadlessWP: Key value for input: ' . (isset($new_key['api_key']) ? $new_key['api_key'] : 'NOT SET')); ?>
+							<input type="text" value="<?php echo esc_attr(isset($new_key['api_key']) ? $new_key['api_key'] : ''); ?>" readonly class="headlesswp-copy-text" id="new-api-key">
 							<button type="button" class="button headlesswp-copy-button" data-clipboard-target="#new-api-key">
 								<span class="dashicons dashicons-clipboard"></span>
 							</button>
@@ -194,7 +187,7 @@ if ($new_key) {
 								<?php endif; ?>
 							</td>
 							<td>
-								<code class="headlesswp-api-key"><?php echo esc_html(substr($key['key'], 0, 8) . '...'); ?></code>
+								<code class="headlesswp-api-key"><?php echo esc_html(substr($key['api_key'], 0, 8) . '...'); ?></code>
 								<span class="description"><?php _e('(Key is hashed for security)', 'headlesswp'); ?></span>
 							</td>
 							<td>
@@ -228,7 +221,7 @@ if ($new_key) {
 								?>
 							</td>
 							<td>
-								<?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($key['created']))); ?>
+								<?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($key['created_at']))); ?>
 							</td>
 							<td>
 								<?php

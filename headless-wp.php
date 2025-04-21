@@ -37,19 +37,12 @@ function activate_headlesswp() {
 			'allow_all_origins' => false,
 			'cors_origins' => array(),
 			'custom_endpoints' => array(),
-			'api_keys' => array()
+			'openapi' => [
+				'enable_try_it' => true,
+				'enable_callback_discovery' => true
+			]
 		);
 		update_option('headlesswp_options', $default_options);
-	} else {
-		// Options exist, ensure api_keys exists
-		if (!is_array($current_options)) {
-			$current_options = array();
-		}
-		
-		if (!isset($current_options['api_keys']) || !is_array($current_options['api_keys'])) {
-			$current_options['api_keys'] = array();
-			update_option('headlesswp_options', $current_options);
-		}
 	}
 
 	// Create required directories
@@ -62,6 +55,11 @@ function activate_headlesswp() {
 	if (!file_exists($css_dir)) {
 		wp_mkdir_p($css_dir);
 	}
+
+	// Create API keys table
+	require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-api-keys.php';
+	$api_keys = new HeadlessWP_API_Keys();
+	$api_keys->create_table();
 }
 register_activation_hook(__FILE__, 'activate_headlesswp');
 
