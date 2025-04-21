@@ -26,12 +26,21 @@ class HeadlessWP_CORS {
 	protected $options;
 
 	/**
+	 * Logger instance.
+	 *
+	 * @var HeadlessWP_Logger
+	 */
+	protected $logger;
+
+	/**
 	 * Initialize the class and set its properties.
 	 *
 	 * @param array $options Plugin options.
+	 * @param HeadlessWP_Logger $logger Logger instance.
 	 */
-	public function __construct($options) {
+	public function __construct($options, $logger) {
 		$this->options = $options;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -58,15 +67,40 @@ class HeadlessWP_CORS {
 			$origin = $this->get_request_origin();
 			
 			if (empty($origin)) {
+				$this->logger->log(
+					'Missing Origin header in preflight request',
+					'error',
+					['request' => $_SERVER],
+					'cors'
+				);
 				$this->send_error_response(400, 'Missing Origin header');
 				exit;
 			}
 
 			if (!$this->is_origin_allowed($origin)) {
+				$this->logger->log(
+					'Origin not allowed in preflight request',
+					'warning',
+					[
+						'origin' => $origin,
+						'allowed_origins' => $this->options['cors_origins']
+					],
+					'cors'
+				);
 				$this->send_error_response(403, 'Origin not allowed: ' . $origin);
 				exit;
 			}
 
+			$this->logger->log(
+				'Preflight request handled successfully',
+				'info',
+				[
+					'origin' => $origin,
+					'method' => $_SERVER['REQUEST_METHOD'],
+					'headers' => getallheaders()
+				],
+				'cors'
+			);
 			$this->send_cors_headers($origin);
 			exit;
 		}
@@ -85,15 +119,44 @@ class HeadlessWP_CORS {
 		$origin = $this->get_request_origin();
 		
 		if (empty($origin)) {
+			$this->logger->log(
+				'Missing Origin header in REST API request',
+				'error',
+				[
+					'request' => $_SERVER,
+					'route' => $request->get_route()
+				],
+				'cors'
+			);
 			$this->send_error_response(400, 'Missing Origin header');
 			return true;
 		}
 
 		if (!$this->is_origin_allowed($origin)) {
+			$this->logger->log(
+				'Origin not allowed in REST API request',
+				'warning',
+				[
+					'origin' => $origin,
+					'route' => $request->get_route(),
+					'allowed_origins' => $this->options['cors_origins']
+				],
+				'cors'
+			);
 			$this->send_error_response(403, 'Origin not allowed: ' . $origin);
 			return true;
 		}
 
+		$this->logger->log(
+			'CORS headers added to REST API response',
+			'info',
+			[
+				'origin' => $origin,
+				'route' => $request->get_route(),
+				'method' => $request->get_method()
+			],
+			'cors'
+		);
 		$this->send_cors_headers($origin);
 		return $served;
 	}
@@ -104,43 +167,103 @@ class HeadlessWP_CORS {
 	 * @return string|null The request origin or null if not found.
 	 */
 	protected function get_request_origin() {
-		// First try to get origin from Origin header
-		if (isset($_SERVER['HTTP_ORIGIN'])) {
-			return $_SERVER['HTTP_ORIGIN'];
-		}
+		$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : null;
 		
-		// If no origin, try to get it from the request
-		$request_origin = $request->get_header('origin');
-		if (!empty($request_origin)) {
-			return $request_origin;
-		}
-		
-		// If still no origin, try to get it from the referer
-		if (isset($_SERVER['HTTP_REFERER'])) {
+		if (!$origin && isset($_SERVER['HTTP_REFERER'])) {
 			$referer = parse_url($_SERVER['HTTP_REFERER']);
-			if (isset($referer['scheme']) && isset($referer['host'])) {
-				$origin = $referer['scheme'] . '://' . $referer['host'];
-				if (isset($referer['port'])) {
-					$origin .= ':' . $referer['port'];
-				}
-				return $origin;
+			$origin = $referer['scheme'] . '://' . $referer['host'];
+			if (isset($referer['port'])) {
+				$origin .= ':' . $referer['port'];
 			}
 		}
 
-		return null;
+		$this->logger->log(
+			'Retrieved request origin',
+			'debug',
+			[
+				'origin' => $origin,
+				'headers' => getallheaders()
+			],
+			'cors'
+		);
+
+		return $origin;
+	}
+
+	/**
+	 * Check if an origin is allowed.
+	 *
+	 * @param string $origin The origin to check.
+	 * @return bool
+	 */
+	protected function is_origin_allowed($origin) {
+		// If allow all origins is enabled, allow all
+		if (!empty($this->options['allow_all_origins'])) {
+			$this->logger->log(
+				'Origin allowed (all origins allowed)',
+				'debug',
+				['origin' => $origin],
+				'cors'
+			);
+			return true;
+		}
+
+		// Get allowed origins from options
+		$allowed_origins = !empty($this->options['cors_origins']) ? $this->options['cors_origins'] : [];
+
+		// Check if the origin is in the allowed list
+		foreach ($allowed_origins as $allowed) {
+			// Normalize origins for comparison
+			$normalized_origin = rtrim(preg_replace('(^https?://)', '', $origin), '/');
+			$normalized_allowed = rtrim(preg_replace('(^https?://)', '', $allowed['origin']), '/');
+
+			if ($normalized_origin === $normalized_allowed) {
+				$this->logger->log(
+					'Origin allowed (matches allowed origin)',
+					'debug',
+					[
+						'origin' => $origin,
+						'allowed_origin' => $allowed['origin']
+					],
+					'cors'
+				);
+				return true;
+			}
+		}
+
+		$this->logger->log(
+			'Origin not allowed',
+			'debug',
+			[
+				'origin' => $origin,
+				'allowed_origins' => $allowed_origins
+			],
+			'cors'
+		);
+		return false;
 	}
 
 	/**
 	 * Send CORS headers.
 	 *
-	 * @param string $origin The request origin.
+	 * @param string $origin The allowed origin.
 	 */
 	protected function send_cors_headers($origin) {
 		header('Access-Control-Allow-Origin: ' . $origin);
 		header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 		header('Access-Control-Allow-Credentials: true');
-		header('Access-Control-Allow-Headers: Content-Type, X-WP-API-Key, Origin, Accept');
-		header('Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages');
+		header('Access-Control-Allow-Headers: Content-Type, X-WP-API-Key, Authorization');
+		header('Access-Control-Max-Age: 86400');
+
+		$this->logger->log(
+			'CORS headers sent',
+			'debug',
+			[
+				'origin' => $origin,
+				'headers' => headers_list()
+			],
+			'cors'
+		);
 	}
 
 	/**
@@ -151,61 +274,6 @@ class HeadlessWP_CORS {
 	 */
 	protected function send_error_response($status_code, $message) {
 		status_header($status_code);
-		header('Content-Type: application/json');
-		echo json_encode([
-			'code' => $status_code,
-			'message' => $message,
-			'data' => [
-				'status' => $status_code,
-				'details' => [
-					'origin' => $this->get_request_origin(),
-					'allowed_origins' => $this->options['cors_origins'],
-					'allow_all_origins' => !empty($this->options['allow_all_origins'])
-				]
-			]
-		]);
-	}
-
-	/**
-	 * Check if an origin is allowed.
-	 *
-	 * @param string $origin The request origin.
-	 * @return bool Whether the origin is allowed.
-	 */
-	protected function is_origin_allowed($origin) {
-		// Always allow localhost origins
-		if (strpos($origin, 'localhost') !== false || strpos($origin, '127.0.0.1') !== false) {
-			return true;
-		}
-
-		// Allow all origins if enabled
-		if (!empty($this->options['allow_all_origins'])) {
-			return true;
-		}
-
-		// Check against allowed origins list
-		$normalized_origin = $this->normalize_origin($origin);
-		foreach ($this->options['cors_origins'] as $allowed_origin) {
-			if ($this->normalize_origin($allowed_origin) === $normalized_origin) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Normalize an origin for comparison.
-	 *
-	 * @param string $origin The origin to normalize.
-	 * @return string The normalized origin.
-	 */
-	protected function normalize_origin($origin) {
-		$parsed = parse_url($origin);
-		$normalized = $parsed['scheme'] . '://' . $parsed['host'];
-		if (isset($parsed['port'])) {
-			$normalized .= ':' . $parsed['port'];
-		}
-		return $normalized;
+		wp_send_json_error(['message' => $message], $status_code);
 	}
 }

@@ -101,38 +101,26 @@ class HeadlessWP_API_Auth {
 			return $result;
 		}
 
-		// Check for API key in headers
-		$api_key = $this->get_header('HTTP_X_WP_API_KEY');
-
-		// If no API key was provided, block access
+		// Get the API key from the request
+		$api_key = $this->get_header('X-WP-API-Key');
 		if (empty($api_key)) {
 			return new WP_Error(
-				'rest_disabled',
-				__('REST API is disabled. API key is required.', 'headlesswp'),
+				'no_api_key',
+				__('No API key provided.', 'headlesswp'),
 				['status' => 401]
 			);
 		}
 
-		// Verify API key
+		// Verify the API key
 		$key_data = $this->verify_api_key($api_key);
-
 		if (is_wp_error($key_data)) {
 			return $key_data;
 		}
 
-		// Check if origin is allowed for this API key
-		if (!$this->verify_origin_for_key($key_data)) {
-			return new WP_Error(
-				'rest_forbidden_origin',
-				__('The origin of this request is not allowed for this API key.', 'headlesswp'),
-				['status' => 403]
-			);
-		}
-
-		// Store the current API key for later use
+		// Store the current API key
 		$this->current_api_key = $key_data;
 
-		// Update last used timestamp
+		// Update the last used timestamp
 		$this->update_key_last_used($api_key);
 
 		// Check role-based permissions
@@ -212,59 +200,73 @@ class HeadlessWP_API_Auth {
 	}
 
 	/**
-	 * Get header value.
+	 * Get a header from the request.
 	 *
-	 * @param string $header Header name.
-	 * @return string|null
+	 * @param string $header The header name.
+	 * @return string|null The header value or null if not found.
 	 */
 	protected function get_header($header) {
-		if (function_exists('getallheaders')) {
-			$headers = getallheaders();
-			// Convert to uppercase for comparison
-			$header_mapped = str_replace('HTTP_', '', $header);
-			$header_mapped = str_replace('_', '-', $header_mapped);
+		$header = strtoupper($header);
+		$header = str_replace('-', '_', $header);
+		$header = 'HTTP_' . $header;
 
-			// Try both formats
-			if (isset($headers[$header_mapped])) {
-				return $headers[$header_mapped];
-			}
-
-			// Try case-insensitive search
-			foreach ($headers as $key => $value) {
-				if (strtolower($key) === strtolower($header_mapped)) {
-					return $value;
-				}
-			}
-		}
-
-		// Fallback to $_SERVER
-		if (isset($_SERVER[$header])) {
-			return $_SERVER[$header];
-		}
-
-		return null;
+		return isset($_SERVER[$header]) ? $_SERVER[$header] : null;
 	}
 
 	/**
-	 * Verify API key.
+	 * Verify an API key.
 	 *
-	 * @param string $api_key API key.
-	 * @return array|WP_Error API key data or error.
+	 * @param string $api_key The API key to verify.
+	 * @return array|WP_Error The key data if valid, WP_Error if invalid.
 	 */
 	protected function verify_api_key($api_key) {
-		return $this->api_keys->verify_key($api_key);
+		global $wpdb;
+
+		// Get all keys from the database
+		$keys = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}headlesswp_api_keys");
+
+		// Check each key
+		foreach ($keys as $key) {
+			if (wp_check_password($api_key, $key->api_key)) {
+				// Found a match
+				return [
+					'id' => $key->id,
+					'user_id' => $key->user_id,
+					'name' => $key->name,
+					'permissions' => $key->permissions,
+					'origins' => maybe_unserialize($key->origins)
+				];
+			}
+		}
+
+		// No match found
+		return new WP_Error(
+			'invalid_api_key',
+			__('Invalid API key.', 'headlesswp'),
+			[
+				'status' => 401,
+				'data' => [
+					'key_provided' => $api_key,
+					'key_prefix' => substr($api_key, 0, 4),
+					'expected_prefix' => 'hwp_'
+				]
+			]
+		);
 	}
 
 	/**
-	 * Update the "last used" timestamp for an API key.
+	 * Update the last used timestamp for an API key.
 	 *
-	 * @param string $api_key API key.
+	 * @param string $api_key The API key to update.
 	 */
 	protected function update_key_last_used($api_key) {
-		$key_data = $this->verify_api_key($api_key);
-		if (!is_wp_error($key_data)) {
-			$this->api_keys->update_last_used($key_data['id']);
-		}
+		global $wpdb;
+
+		$wpdb->update(
+			$wpdb->prefix . 'headlesswp_api_keys',
+			['last_used' => current_time('mysql')],
+			['api_key' => wp_hash_password($api_key)]
+		);
 	}
 
 	/**
