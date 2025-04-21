@@ -1,102 +1,155 @@
-# HeadlessWP
+# HeadlessWP SDK
 
-A WordPress plugin for headless WordPress functionality.
+A TypeScript SDK for interacting with WordPress REST API in a headless setup.
 
-## Development Setup
-
-1. Clone the repository:
+## Installation
 
 ```bash
-git clone [repository-url]
-cd headlesswp
+npm install headlesswp
+# or
+yarn add headlesswp
 ```
 
-2. Install Node.js dependencies:
+## Configuration
 
-```bash
-npm install
+First, you'll need to configure the SDK with your WordPress site's base URL and API key:
+
+```typescript
+import { HeadlessWP } from 'headlesswp';
+
+const config = {
+  baseUrl: 'https://your-wordpress-site.com', // Your WordPress site URL
+  apiKey: 'your-api-key' // Your WordPress API key
+};
+
+const wp = new HeadlessWP(config);
 ```
 
-## Development Process
+## Usage
 
-### Working with Assets
+### Posts
 
-The plugin uses WordPress Scripts for asset compilation. Source files are located in:
+```typescript
+// List posts with pagination
+const posts = await wp.posts.list({
+  page: 1,
+  per_page: 10,
+  search: 'keyword',
+  categories: [1, 2],
+  tags: [3, 4]
+});
 
-- JavaScript: `assets/js/`
-- Styles: `assets/css/`
+// Get a single post
+const post = await wp.posts.getById(123);
 
-During development, run:
+// Create a new post
+const newPost = await wp.posts.create({
+  title: 'New Post',
+  content: 'Post content',
+  status: 'publish'
+});
 
-```bash
-npm run start
+// Update a post
+const updatedPost = await wp.posts.update(123, {
+  title: 'Updated Title'
+});
+
+// Delete a post
+await wp.posts.deleteById(123);
 ```
 
-This will watch for changes in your assets and recompile them automatically.
+### Pages
 
-### Building for Production
+```typescript
+// List pages with pagination
+const pages = await wp.pages.list({
+  page: 1,
+  per_page: 10,
+  search: 'keyword'
+});
 
-To build assets for production:
+// Get a single page
+const page = await wp.pages.getById(123);
 
-```bash
-npm run build
+// Create a new page
+const newPage = await wp.pages.create({
+  title: 'New Page',
+  content: 'Page content',
+  status: 'publish'
+});
+
+// Update a page
+const updatedPage = await wp.pages.update(123, {
+  title: 'Updated Title'
+});
+
+// Delete a page
+await wp.pages.deleteById(123);
 ```
 
-This will create minified files in the `build/` directory:
+## List Options
 
-- `build/js/openapi.js`
-- `build/css/openapi.css`
+The `list` method accepts the following options:
 
-#### JavaScript Dependencies
-
-- Production:
-  - @stoplight/elements: ^7.6.1
-  - @wordpress/element: ^4.11.0
-- Development:
-  - @seriousme/openapi-schema-validator: ^2.0.2
-  - @woocommerce/dependency-extraction-webpack-plugin: 1.4.0
-  - @wordpress/scripts: ^13.0.3
-
-### Distribution Process
-
-1. Build the production assets:
-
-```bash
-npm run build
+```typescript
+interface ListOptions {
+  page?: number;           // Page number
+  per_page?: number;       // Number of items per page
+  search?: string;         // Search term
+  after?: string;          // Date after which to retrieve posts
+  before?: string;         // Date before which to retrieve posts
+  author?: number;         // Author ID
+  author_exclude?: number[]; // Author IDs to exclude
+  exclude?: number[];      // Post IDs to exclude
+  include?: number[];      // Post IDs to include
+  offset?: number;         // Number of items to offset
+  order?: 'asc' | 'desc';  // Sort order
+  orderby?: 'date' | 'id' | 'include' | 'relevance' | 'slug' | 'title'; // Sort field
+  slug?: string;           // Post slug
+  status?: string;         // Post status
+  categories?: number[];   // Category IDs
+  categories_exclude?: number[]; // Category IDs to exclude
+  tags?: number[];         // Tag IDs
+  tags_exclude?: number[]; // Tag IDs to exclude
+  sticky?: boolean;        // Whether to include sticky posts
+}
 ```
 
-2. Create a distribution copy excluding development files:
+## Response Format
 
-```bash
-# Files/directories to exclude
-- node_modules/
-- vendor/
-- .git/
-- .github/
-- assets/
-- tests/
-- .gitignore
-- package.json
-- package-lock.json
-- composer.json
-- composer.lock
-- webpack.config.js
+List responses include pagination information:
+
+```typescript
+interface ListResponse<T> {
+  data: T[];           // Array of items
+  total: number;       // Total number of items
+  totalPages: number;  // Total number of pages
+  currentPage: number; // Current page number
+}
 ```
 
-## Features
+## Error Handling
 
-- OpenAPI Documentation Generation
-- CORS Support
-- Headless Mode Configuration
+The SDK throws errors when API requests fail. You can catch these errors and handle them appropriately:
 
-## Contributing
+```typescript
+try {
+  const posts = await wp.posts.list();
+} catch (error) {
+  if (error instanceof Error) {
+    console.error('API Error:', error.message);
+  }
+}
+```
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Types
+
+The SDK includes TypeScript types for all WordPress entities and responses. You can import these types for use in your application:
+
+```typescript
+import { Post, Page, ListOptions, ListResponse } from 'headlesswp';
+```
 
 ## License
 
-GPL-2.0-or-later
+MIT

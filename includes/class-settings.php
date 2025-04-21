@@ -40,11 +40,21 @@ class HeadlessWP_Settings {
      * Register plugin settings.
      */
     public function register_settings() {
+        // Register main options
         register_setting(
             'headlesswp_options',
             'headlesswp_options',
             [$this, 'validate_options']
         );
+
+        // Register security settings
+        register_setting(
+            'headlesswp_security_options',
+            'headlesswp_options',
+            [$this, 'validate_security_options']
+        );
+
+        // Add settings sections and fields
         add_settings_section(
             'headlesswp_redirect',
             __('Redirect Settings', 'headlesswp'),
@@ -170,6 +180,40 @@ class HeadlessWP_Settings {
             : 'api';
         $output['custom_redirect_url'] = isset($input['custom_redirect_url']) ? esc_url_raw($input['custom_redirect_url']) : '';
 
+        return $output;
+    }
+    /**
+     * Validate security options.
+     *
+     * @param array $input The options to validate.
+     * @return array The validated options.
+     */
+    public function validate_security_options($input) {
+        $output = $this->options; // Keep existing options
+        
+        // CORS settings
+        $output['enable_cors'] = isset($input['enable_cors']) ? true : false;
+        $output['allow_all_origins'] = isset($input['allow_all_origins']) ? true : false;
+        
+        // Process origins
+        $origins = array();
+        if (isset($input['origin']) && is_array($input['origin'])) {
+            foreach ($input['origin'] as $index => $origin_url) {
+                $origin_url = trim(sanitize_text_field($origin_url));
+                if (!empty($origin_url)) {
+                    $origin_id = isset($input['origin_id'][$index]) ? sanitize_text_field($input['origin_id'][$index]) : 'origin_' . uniqid();
+                    $origin_description = isset($input['origin_description'][$index]) ? sanitize_text_field($input['origin_description'][$index]) : '';
+
+                    $origins[] = array(
+                        'id' => $origin_id,
+                        'origin' => $origin_url,
+                        'description' => $origin_description
+                    );
+                }
+            }
+        }
+        $output['cors_origins'] = $origins;
+        
         return $output;
     }
     /**

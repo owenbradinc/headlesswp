@@ -10,49 +10,19 @@ if (!defined('ABSPATH')) {
 	exit;
 }
 
+// Initialize options
+$options = get_option('headlesswp_options', array(
+    'enable_cors' => false,
+    'allow_all_origins' => false,
+    'cors_origins' => array()
+));
+
 // Process form submission
 if (isset($_POST['submit']) && current_user_can('manage_options')) {
 	check_admin_referer('headlesswp_security_options', 'headlesswp_security_nonce');
-
-	// Prepare options array
-	$updated_options = $options;
-
-	// CORS settings
-	$updated_options['enable_cors'] = isset($_POST['enable_cors']) ? true : false;
-	$updated_options['allow_all_origins'] = isset($_POST['allow_all_origins']) ? true : false;
-
-	// Process origins
-	$origins = array();
-	if (isset($_POST['origin']) && is_array($_POST['origin'])) {
-		foreach ($_POST['origin'] as $index => $origin_url) {
-			$origin_url = trim(sanitize_text_field($origin_url));
-			if (!empty($origin_url)) {
-				$origin_id = isset($_POST['origin_id'][$index]) ? sanitize_text_field($_POST['origin_id'][$index]) : 'origin_' . uniqid();
-				$origin_description = isset($_POST['origin_description'][$index]) ? sanitize_text_field($_POST['origin_description'][$index]) : '';
-
-				$origins[] = array(
-					'id' => $origin_id,
-					'origin' => $origin_url,
-					'description' => $origin_description
-				);
-			}
-		}
-	}
-	$updated_options['cors_origins'] = $origins;
-
-	// Save options
-	update_option('headlesswp_options', $updated_options);
-
-	// Add success message
-	add_settings_error(
-		'headlesswp_security_options',
-		'settings_updated',
-		__('Security settings saved successfully.', 'headlesswp'),
-		'success'
-	);
-
-	// Refresh options
-	$options = get_option('headlesswp_options', array());
+	
+	// The settings API will handle the saving
+	settings_errors('headlesswp_security_options');
 }
 ?>
 
@@ -66,8 +36,10 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
             <h2><?php _e('Security Settings', 'headlesswp'); ?></h2>
             <p><?php _e('Configure security settings for your headless WordPress installation.', 'headlesswp'); ?></p>
 
-            <form method="post" action="">
-				<?php wp_nonce_field('headlesswp_security_options', 'headlesswp_security_nonce'); ?>
+            <form method="post" action="options.php">
+				<?php 
+                settings_fields('headlesswp_security_options');
+                ?>
 
                 <!-- CORS Settings -->
                 <h3><?php _e('CORS Settings', 'headlesswp'); ?></h3>
@@ -79,7 +51,7 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
                         <td>
                             <fieldset>
                                 <label for="enable_cors">
-                                    <input name="enable_cors" type="checkbox" id="enable_cors" value="1" <?php checked(!empty($options['enable_cors'])); ?>>
+                                    <input name="headlesswp_options[enable_cors]" type="checkbox" id="enable_cors" value="1" <?php checked(isset($options['enable_cors']) ? $options['enable_cors'] : false); ?>>
 									<?php _e('Enable Cross-Origin Resource Sharing for the REST API', 'headlesswp'); ?>
                                 </label>
                             </fieldset>
@@ -90,7 +62,7 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
                         <td>
                             <fieldset>
                                 <label for="allow_all_origins">
-                                    <input name="allow_all_origins" type="checkbox" id="allow_all_origins" value="1" <?php checked(!empty($options['allow_all_origins'])); ?>>
+                                    <input name="headlesswp_options[allow_all_origins]" type="checkbox" id="allow_all_origins" value="1" <?php checked(isset($options['allow_all_origins']) ? $options['allow_all_origins'] : false); ?>>
 									<?php _e('Allow requests from all origins (not recommended for production)', 'headlesswp'); ?>
                                 </label>
                             </fieldset>
@@ -120,15 +92,15 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
 								?>
                                 <tr>
                                     <td>
-                                        <input type="hidden" name="origin_id[<?php echo $index; ?>]" value="<?php echo esc_attr($origin_id); ?>">
+                                        <input type="hidden" name="headlesswp_options[origin_id][<?php echo $index; ?>]" value="<?php echo esc_attr($origin_id); ?>">
                                         <input type="text" class="regular-text"
-                                               name="origin[<?php echo $index; ?>]"
+                                               name="headlesswp_options[origin][<?php echo $index; ?>]"
                                                value="<?php echo esc_attr($origin_data['origin']); ?>"
                                                placeholder="https://example.com">
                                     </td>
                                     <td>
                                         <input type="text" class="regular-text"
-                                               name="origin_description[<?php echo $index; ?>]"
+                                               name="headlesswp_options[origin_description][<?php echo $index; ?>]"
                                                value="<?php echo isset($origin_data['description']) ? esc_attr($origin_data['description']) : ''; ?>"
                                                placeholder="<?php _e('Frontend application', 'headlesswp'); ?>">
                                     </td>
@@ -196,14 +168,14 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
                 const newRow = `
                     <tr>
                         <td>
-                            <input type="hidden" name="origin_id[${index}]" value="${originId}">
+                            <input type="hidden" name="headlesswp_options[origin_id][${index}]" value="${originId}">
                             <input type="text" class="regular-text"
-                                name="origin[${index}]"
+                                name="headlesswp_options[origin][${index}]"
                                 value="${origin}">
                         </td>
                         <td>
                             <input type="text" class="regular-text"
-                                name="origin_description[${index}]"
+                                name="headlesswp_options[origin_description][${index}]"
                                 value="${description}">
                         </td>
                         <td>

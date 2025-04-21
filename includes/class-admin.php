@@ -44,7 +44,53 @@ class HeadlessWP_Admin {
 		// Enqueue admin scripts and styles
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
 
+		// Register settings
+		add_action('admin_init', [$this, 'register_security_settings']);
+
 		add_filter('plugin_action_links_' . HEADLESSWP_PLUGIN_BASENAME, [$this, 'add_plugin_action_links']);
+	}
+
+	/**
+	 * Register security settings
+	 */
+	public function register_security_settings() {
+		register_setting(
+			'headlesswp_security_options',
+			'headlesswp_options',
+			[$this, 'validate_security_options']
+		);
+	}
+
+	/**
+	 * Validate security options
+	 */
+	public function validate_security_options($input) {
+		$output = $this->options; // Keep existing options
+        
+        // CORS settings
+        $output['enable_cors'] = isset($input['enable_cors']) ? true : false;
+        $output['allow_all_origins'] = isset($input['allow_all_origins']) ? true : false;
+        
+        // Process origins
+        $origins = array();
+        if (isset($input['origin']) && is_array($input['origin'])) {
+            foreach ($input['origin'] as $index => $origin_url) {
+                $origin_url = trim(sanitize_text_field($origin_url));
+                if (!empty($origin_url)) {
+                    $origin_id = isset($input['origin_id'][$index]) ? sanitize_text_field($input['origin_id'][$index]) : 'origin_' . uniqid();
+                    $origin_description = isset($input['origin_description'][$index]) ? sanitize_text_field($input['origin_description'][$index]) : '';
+
+                    $origins[] = array(
+                        'id' => $origin_id,
+                        'origin' => $origin_url,
+                        'description' => $origin_description
+                    );
+                }
+            }
+        }
+        $output['cors_origins'] = $origins;
+        
+        return $output;
 	}
 
 	/**

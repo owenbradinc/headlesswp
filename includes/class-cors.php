@@ -64,7 +64,14 @@ class HeadlessWP_Security {
 	public function handle_cors_headers($served, $result, $request, $server) {
 		$origin = get_http_origin();
 
+		// Debug logging
+		error_log('HeadlessWP CORS Debug:');
+		error_log('Origin: ' . ($origin ? $origin : 'none'));
+		error_log('Options: ' . print_r($this->options, true));
+		error_log('Request Method: ' . $_SERVER['REQUEST_METHOD']);
+
 		if (!$origin) {
+			error_log('HeadlessWP CORS: No origin found, returning served');
 			return $served;
 		}
 
@@ -72,19 +79,36 @@ class HeadlessWP_Security {
 		$allowed_origins = !empty($this->options['cors_origins']) ? $this->options['cors_origins'] : [];
 		$all_origins_allowed = !empty($this->options['allow_all_origins']);
 
+		// Debug logging
+		error_log('All origins allowed: ' . ($all_origins_allowed ? 'yes' : 'no'));
+		error_log('Allowed origins: ' . print_r($allowed_origins, true));
+
 		// Check if the origin is allowed
 		$origin_is_allowed = $all_origins_allowed || $this->is_origin_allowed($origin, $allowed_origins);
+		error_log('Origin is allowed: ' . ($origin_is_allowed ? 'yes' : 'no'));
 
 		if ($origin_is_allowed) {
-			header('Access-Control-Allow-Origin: ' . esc_url_raw($origin));
+			// If all origins are allowed, use the wildcard
+			if ($all_origins_allowed) {
+				header('Access-Control-Allow-Origin: *');
+				error_log('HeadlessWP CORS: Setting Access-Control-Allow-Origin: *');
+			} else {
+				header('Access-Control-Allow-Origin: ' . esc_url_raw($origin));
+				error_log('HeadlessWP CORS: Setting Access-Control-Allow-Origin: ' . esc_url_raw($origin));
+			}
 			header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE, PATCH');
 			header('Access-Control-Allow-Credentials: true');
-			header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce');
+			header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce, X-WP-API-Key');
+			header('Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages');
 
 			if ('OPTIONS' === $_SERVER['REQUEST_METHOD']) {
+				status_header(200);
 				header('Access-Control-Max-Age: 86400');
+				error_log('HeadlessWP CORS: Handling OPTIONS request');
 				exit;
 			}
+		} else {
+			error_log('HeadlessWP CORS: Origin not allowed');
 		}
 
 		return $served;
