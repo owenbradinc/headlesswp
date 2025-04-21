@@ -95,19 +95,18 @@ class HeadlessWP_API_Auth {
 
 		// Check for API key in headers
 		$api_key = $this->get_header('HTTP_X_WP_API_KEY');
-		$api_secret = $this->get_header('HTTP_X_WP_API_SECRET');
 
 		// If no API key was provided, block access
-		if (empty($api_key) || empty($api_secret)) {
+		if (empty($api_key)) {
 			return new WP_Error(
 				'rest_disabled',
-				__('REST API is disabled. API key and secret are required.', 'headlesswp'),
+				__('REST API is disabled. API key is required.', 'headlesswp'),
 				['status' => 401]
 			);
 		}
 
 		// Verify API key
-		$key_data = $this->verify_api_credentials($api_key, $api_secret);
+		$key_data = $this->verify_api_key($api_key);
 
 		if (is_wp_error($key_data)) {
 			return $key_data;
@@ -239,20 +238,19 @@ class HeadlessWP_API_Auth {
 	}
 
 	/**
-	 * Verify API key credentials.
+	 * Verify API key.
 	 *
-	 * @param string $api_key    API key.
-	 * @param string $api_secret API secret.
+	 * @param string $api_key API key.
 	 * @return array|WP_Error API key data or error.
 	 */
-	protected function verify_api_credentials($api_key, $api_secret) {
+	protected function verify_api_key($api_key) {
 		// Get API keys from options
 		$api_keys = $this->options['api_keys'];
 
-		// Find the key
+		// Find the key by checking each hashed key
 		$key_data = null;
 		foreach ($api_keys as $key) {
-			if ($key['key'] === $api_key) {
+			if (wp_check_password($api_key, $key['key'])) {
 				$key_data = $key;
 				break;
 			}
@@ -263,15 +261,6 @@ class HeadlessWP_API_Auth {
 			return new WP_Error(
 				'rest_invalid_api_key',
 				__('Invalid API key.', 'headlesswp'),
-				['status' => 401]
-			);
-		}
-
-		// Verify the secret using WordPress password verification
-		if (!wp_check_password($api_secret, $key_data['secret'])) {
-			return new WP_Error(
-				'rest_invalid_api_secret',
-				__('Invalid API secret.', 'headlesswp'),
 				['status' => 401]
 			);
 		}

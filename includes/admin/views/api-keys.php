@@ -34,10 +34,8 @@ if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_optio
 	} else {
 		// Generate a unique key
 		$api_key = 'hwp_' . wp_generate_password(32, false, false);
-		$api_secret = wp_generate_password(64, true, true);
-
-		// Store hashed secret
-		$hashed_secret = wp_hash_password($api_secret);
+		$api_key_plain = $api_key; // Store the plain key for display
+		$api_key = wp_hash_password($api_key); // Hash the key for storage
 
 		// Add to options
 		$options['api_keys'][] = array(
@@ -45,7 +43,6 @@ if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_optio
 			'name' => $key_name,
 			'description' => $key_description,
 			'key' => $api_key,
-			'secret' => $hashed_secret,
 			'permissions' => $key_permissions,
 			'origins' => $selected_origins,
 			'created' => current_time('mysql'),
@@ -54,10 +51,9 @@ if (isset($_POST['headlesswp_create_api_key']) && current_user_can('manage_optio
 
 		update_option('headlesswp_options', $options);
 
-		// Set transient to display the newly created key's secret
+		// Set transient to display the newly created key (using the plain key)
 		set_transient('headlesswp_new_api_key', array(
-			'key' => $api_key,
-			'secret' => $api_secret
+			'key' => $api_key_plain
 		), 60);
 
 		add_settings_error(
@@ -120,7 +116,7 @@ if ($new_key) {
 		<?php if ($new_key): ?>
 			<div class="headlesswp-card headlesswp-new-key-notice">
 				<h3><?php _e('Your new API key has been created', 'headlesswp'); ?></h3>
-				<p><?php _e('Be sure to copy your API key and secret now. For security reasons, we will only show the API secret once.', 'headlesswp'); ?></p>
+				<p><?php _e('Be sure to copy your API key now. For security reasons, we will only show the API key once.', 'headlesswp'); ?></p>
 
 				<div class="headlesswp-key-details">
 					<div class="headlesswp-copy-field">
@@ -132,20 +128,10 @@ if ($new_key) {
 							</button>
 						</div>
 					</div>
-
-					<div class="headlesswp-copy-field">
-						<label><?php _e('API Secret:', 'headlesswp'); ?></label>
-						<div class="headlesswp-copy-container">
-							<input type="text" value="<?php echo esc_attr($new_key['secret']); ?>" readonly class="headlesswp-copy-text" id="new-api-secret">
-							<button type="button" class="button headlesswp-copy-button" data-clipboard-target="#new-api-secret">
-								<span class="dashicons dashicons-clipboard"></span>
-							</button>
-						</div>
-					</div>
 				</div>
 
 				<div class="headlesswp-warning">
-					<p><strong><?php _e('Important:', 'headlesswp'); ?></strong> <?php _e('Copy these credentials to a secure location. You won\'t be able to see the API Secret again after you leave this page.', 'headlesswp'); ?></p>
+					<p><strong><?php _e('Important:', 'headlesswp'); ?></strong> <?php _e('Copy this key to a secure location. You won\'t be able to see it again after you leave this page.', 'headlesswp'); ?></p>
 				</div>
 			</div>
 		<?php endif; ?>
@@ -181,7 +167,8 @@ if ($new_key) {
 								<?php endif; ?>
 							</td>
 							<td>
-								<code class="headlesswp-api-key"><?php echo esc_html($key['key']); ?></code>
+								<code class="headlesswp-api-key"><?php echo esc_html(substr($key['key'], 0, 8) . '...'); ?></code>
+								<span class="description"><?php _e('(Key is hashed for security)', 'headlesswp'); ?></span>
 							</td>
 							<td>
 								<?php
@@ -337,13 +324,12 @@ if ($new_key) {
 
 				<h4><?php _e('1. HTTP Headers (Recommended)', 'headlesswp'); ?></h4>
 				<div class="headlesswp-code-block">
-					<code>X-WP-API-Key: your_api_key</code><br>
-					<code>X-WP-API-Secret: your_api_secret</code>
+					<code>X-WP-API-Key: your_api_key</code>
 				</div>
 
 				<h4><?php _e('2. Query Parameters', 'headlesswp'); ?></h4>
 				<div class="headlesswp-code-block">
-					<code>https://example.com/wp-json/wp/v2/posts?api_key=your_api_key&api_secret=your_api_secret</code>
+					<code>https://example.com/wp-json/wp/v2/posts?api_key=your_api_key</code>
 				</div>
 
 				<h3><?php _e('Example Usage (JavaScript)', 'headlesswp'); ?></h3>
@@ -353,7 +339,6 @@ fetch('https://example.com/wp-json/wp/v2/posts', {
   method: 'GET',
   headers: {
     'X-WP-API-Key': 'your_api_key',
-    'X-WP-API-Secret': 'your_api_secret',
     'Content-Type': 'application/json'
   }
 })
@@ -365,7 +350,7 @@ fetch('https://example.com/wp-json/wp/v2/posts', {
 
 				<h3><?php _e('Security Recommendations', 'headlesswp'); ?></h3>
 				<ul>
-					<li><?php _e('Store API secrets securely and never expose them in client-side code.', 'headlesswp'); ?></li>
+					<li><?php _e('Store API keys securely and never expose them in client-side code.', 'headlesswp'); ?></li>
 					<li><?php _e('Use HTTPS to encrypt API requests and prevent credential theft.', 'headlesswp'); ?></li>
 					<li><?php _e('Create separate API keys for different applications or services.', 'headlesswp'); ?></li>
 					<li><?php _e('Regularly audit and revoke unused API keys.', 'headlesswp'); ?></li>
