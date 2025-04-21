@@ -162,6 +162,7 @@ class HeadlessWP_Settings {
     public function validate_options($input) {
         $output = [];
         $output['disable_themes'] = isset($input['disable_themes']) ? true : false;
+        $output['disable_frontend'] = isset($input['disable_frontend']) ? true : false;
 
         $valid_redirect_types = ['api', 'custom'];
         $output['redirect_url'] = isset($input['redirect_url']) && in_array($input['redirect_url'], $valid_redirect_types)

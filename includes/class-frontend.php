@@ -94,19 +94,14 @@ class HeadlessWP_Frontend {
 			return;
 		}
 
-		// Don't redirect if not on the homepage
-		if (!is_home() && !is_front_page()) {
+		// Don't redirect if it's an API request
+		if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false) {
 			return;
 		}
 
 		// Get redirect settings
 		$redirect_type = isset($this->options['redirect_url']) ? $this->options['redirect_url'] : 'api';
 		$custom_redirect_url = isset($this->options['custom_redirect_url']) ? $this->options['custom_redirect_url'] : '';
-
-		// Don't redirect if it's an API request
-		if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false) {
-			return;
-		}
 
 		// Determine redirect URL
 		if ($redirect_type === 'custom' && !empty($custom_redirect_url)) {
