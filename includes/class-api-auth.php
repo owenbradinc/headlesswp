@@ -101,26 +101,38 @@ class HeadlessWP_API_Auth {
 			return $result;
 		}
 
-		// Get the API key from the request
-		$api_key = $this->get_header('X-WP-API-Key');
+		// Check for API key in headers
+		$api_key = $this->get_header('HTTP_X_WP_API_KEY');
+
+		// If no API key was provided, block access
 		if (empty($api_key)) {
 			return new WP_Error(
-				'no_api_key',
-				__('No API key provided.', 'headlesswp'),
+				'rest_disabled',
+				__('REST API is disabled. API key is required.', 'headlesswp'),
 				['status' => 401]
 			);
 		}
 
-		// Verify the API key
+		// Verify API key
 		$key_data = $this->verify_api_key($api_key);
+
 		if (is_wp_error($key_data)) {
 			return $key_data;
 		}
 
-		// Store the current API key
+		// Check if origin is allowed for this API key
+		if (!$this->verify_origin_for_key($key_data)) {
+			return new WP_Error(
+				'rest_forbidden_origin',
+				__('The origin of this request is not allowed for this API key.', 'headlesswp'),
+				['status' => 403]
+			);
+		}
+
+		// Store the current API key for later use
 		$this->current_api_key = $key_data;
 
-		// Update the last used timestamp
+		// Update last used timestamp
 		$this->update_key_last_used($api_key);
 
 		// Check role-based permissions
@@ -200,73 +212,59 @@ class HeadlessWP_API_Auth {
 	}
 
 	/**
-	 * Get a header from the request.
+	 * Get header value.
 	 *
-	 * @param string $header The header name.
-	 * @return string|null The header value or null if not found.
+	 * @param string $header Header name.
+	 * @return string|null
 	 */
 	protected function get_header($header) {
-		$header = strtoupper($header);
-		$header = str_replace('-', '_', $header);
-		$header = 'HTTP_' . $header;
+		if (function_exists('getallheaders')) {
+			$headers = getallheaders();
+			// Convert to uppercase for comparison
+			$header_mapped = str_replace('HTTP_', '', $header);
+			$header_mapped = str_replace('_', '-', $header_mapped);
 
-		return isset($_SERVER[$header]) ? $_SERVER[$header] : null;
-	}
+			// Try both formats
+			if (isset($headers[$header_mapped])) {
+				return $headers[$header_mapped];
+			}
 
-	/**
-	 * Verify an API key.
-	 *
-	 * @param string $api_key The API key to verify.
-	 * @return array|WP_Error The key data if valid, WP_Error if invalid.
-	 */
-	protected function verify_api_key($api_key) {
-		global $wpdb;
-
-		// Get all keys from the database
-		$keys = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}headlesswp_api_keys");
-
-		// Check each key
-		foreach ($keys as $key) {
-			if (wp_check_password($api_key, $key->api_key)) {
-				// Found a match
-				return [
-					'id' => $key->id,
-					'user_id' => $key->user_id,
-					'name' => $key->name,
-					'permissions' => $key->permissions,
-					'origins' => maybe_unserialize($key->origins)
-				];
+			// Try case-insensitive search
+			foreach ($headers as $key => $value) {
+				if (strtolower($key) === strtolower($header_mapped)) {
+					return $value;
+				}
 			}
 		}
 
-		// No match found
-		return new WP_Error(
-			'invalid_api_key',
-			__('Invalid API key.', 'headlesswp'),
-			[
-				'status' => 401,
-				'data' => [
-					'key_provided' => $api_key,
-					'key_prefix' => substr($api_key, 0, 4),
-					'expected_prefix' => 'hwp_'
-				]
-			]
-		);
+		// Fallback to $_SERVER
+		if (isset($_SERVER[$header])) {
+			return $_SERVER[$header];
+		}
+
+		return null;
 	}
 
 	/**
-	 * Update the last used timestamp for an API key.
+	 * Verify API key.
 	 *
-	 * @param string $api_key The API key to update.
+	 * @param string $api_key API key.
+	 * @return array|WP_Error API key data or error.
+	 */
+	protected function verify_api_key($api_key) {
+		return $this->api_keys->verify_key($api_key);
+	}
+
+	/**
+	 * Update the "last used" timestamp for an API key.
+	 *
+	 * @param string $api_key API key.
 	 */
 	protected function update_key_last_used($api_key) {
-		global $wpdb;
-
-		$wpdb->update(
-			$wpdb->prefix . 'headlesswp_api_keys',
-			['last_used' => current_time('mysql')],
-			['api_key' => wp_hash_password($api_key)]
-		);
+		$key_data = $this->verify_api_key($api_key);
+		if (!is_wp_error($key_data)) {
+			$this->api_keys->update_last_used($key_data['id']);
+		}
 	}
 
 	/**

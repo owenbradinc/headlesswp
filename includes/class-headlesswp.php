@@ -89,13 +89,6 @@ class HeadlessWP {
 	protected $api_keys;
 
 	/**
-	 * The logger instance.
-	 *
-	 * @var HeadlessWP_Logger
-	 */
-	protected $logger;
-
-	/**
 	 * Get the singleton instance.
 	 *
 	 * @return HeadlessWP
@@ -110,12 +103,7 @@ class HeadlessWP {
 	/**
 	 * Initialize the plugin.
 	 */
-	public function init() {
-		// Initialize logger first
-		require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-logger.php';
-		$this->logger = HeadlessWP_Logger::get_instance();
-		$this->logger->init();
-
+	public function __construct() {
 		// Load plugin options with default values
 		$this->options = get_option('headlesswp_options', [
 			'disable_themes' => false,
@@ -134,17 +122,6 @@ class HeadlessWP {
 			'cors_origins' => []
 		]);
 
-		// Log plugin initialization
-		$this->logger->log(
-			'HeadlessWP plugin initialized',
-			'info',
-			[
-				'options' => $this->options,
-				'security_options' => $this->security_options
-			],
-			'core'
-		);
-
 		// Load required files
 		$this->load_dependencies();
 
@@ -152,7 +129,7 @@ class HeadlessWP {
 		$this->settings = new HeadlessWP_Settings($this->options);
 		$this->admin = new HeadlessWP_Admin($this->options);
 		$this->frontend = new HeadlessWP_Frontend($this->options);
-		$this->cors = new HeadlessWP_CORS($this->security_options, $this->logger);
+		$this->cors = new HeadlessWP_CORS($this->security_options);  // Pass security options to CORS handler
 		$this->api_auth = new HeadlessWP_API_Auth($this->options);
 		$this->api_keys = new HeadlessWP_API_Keys();
 	}
@@ -174,9 +151,6 @@ class HeadlessWP {
 	 * Run the plugin - hook into WordPress.
 	 */
 	public function run() {
-		// Initialize the plugin first
-		$this->init();
-
 		// Load internationalization
 		add_action('plugins_loaded', [$this, 'load_plugin_textdomain']);
 
@@ -247,7 +221,6 @@ class HeadlessWP {
 	 * @return array
 	 */
 	public function get_api_keys() {
-		$this->logger->log('Retrieving all API keys', 'info', [], 'api_keys');
 		return $this->api_keys->get_keys();
 	}
 
@@ -261,43 +234,7 @@ class HeadlessWP {
 	 * @return array|WP_Error The new key data or WP_Error on failure
 	 */
 	public function add_api_key($name, $description = '', $permissions = 'read', $origins = []) {
-		$this->logger->log(
-			'Adding new API key',
-			'info',
-			[
-				'name' => $name,
-				'description' => $description,
-				'permissions' => $permissions,
-				'origins' => $origins
-			],
-			'api_keys'
-		);
-
-		$result = $this->api_keys->add_key($name, $description, $permissions, $origins);
-
-		if (is_wp_error($result)) {
-			$this->logger->log(
-				'Failed to add API key',
-				'error',
-				[
-					'error' => $result->get_error_message(),
-					'code' => $result->get_error_code()
-				],
-				'api_keys'
-			);
-		} else {
-			$this->logger->log(
-				'API key added successfully',
-				'info',
-				[
-					'key_id' => $result['id'],
-					'name' => $result['name']
-				],
-				'api_keys'
-			);
-		}
-
-		return $result;
+		return $this->api_keys->add_key($name, $description, $permissions, $origins);
 	}
 
 	/**
@@ -307,34 +244,6 @@ class HeadlessWP {
 	 * @return bool|WP_Error True on success, WP_Error on failure
 	 */
 	public function revoke_api_key($key_id) {
-		$this->logger->log(
-			'Revoking API key',
-			'info',
-			['key_id' => $key_id],
-			'api_keys'
-		);
-
-		$result = $this->api_keys->revoke_key($key_id);
-
-		if (is_wp_error($result)) {
-			$this->logger->log(
-				'Failed to revoke API key',
-				'error',
-				[
-					'error' => $result->get_error_message(),
-					'code' => $result->get_error_code()
-				],
-				'api_keys'
-			);
-		} else {
-			$this->logger->log(
-				'API key revoked successfully',
-				'info',
-				['key_id' => $key_id],
-				'api_keys'
-			);
-		}
-
-		return $result;
+		return $this->api_keys->revoke_key($key_id);
 	}
 }
