@@ -42,14 +42,11 @@ class HeadlessWP_CORS {
 			// Remove WordPress default CORS headers
 			remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
 			
-			// Add our CORS handling for REST API
+			// Add our CORS handling
 			add_filter('rest_pre_serve_request', [$this, 'handle_cors_headers'], 10, 4);
 			
-			// Handle preflight requests for REST API
+			// Handle preflight requests
 			add_action('rest_api_init', [$this, 'handle_preflight_requests'], 0);
-			
-			// Add CORS handling for all requests
-			add_action('init', [$this, 'handle_all_requests'], 0);
 		}
 	}
 
@@ -61,19 +58,12 @@ class HeadlessWP_CORS {
 			$origin = $this->get_request_origin();
 			
 			if (empty($origin)) {
-				// For localhost development, allow requests without origin
-				if (isset($_SERVER['HTTP_HOST']) && 
-					(strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || 
-					 strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false)) {
-					$origin = 'http://' . $_SERVER['HTTP_HOST'];
-				} else {
-					$this->send_error_response(400, 'Missing Origin header');
-					exit;
-				}
+				$this->send_error_response(400, 'Missing Origin header');
+				exit;
 			}
 
 			if (!$this->is_origin_allowed($origin)) {
-				$this->send_error_response(403, 'Origin not allowed');
+				$this->send_error_response(403, 'Origin not allowed: ' . $origin);
 				exit;
 			}
 
@@ -92,22 +82,15 @@ class HeadlessWP_CORS {
 	 * @return bool Whether the request has already been served.
 	 */
 	public function handle_cors_headers($served, $result, $request, $server) {
-		$origin = $this->get_request_origin($request);
+		$origin = $this->get_request_origin();
 		
 		if (empty($origin)) {
-			// For localhost development, allow requests without origin
-			if (isset($_SERVER['HTTP_HOST']) && 
-				(strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || 
-				 strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false)) {
-				$origin = 'http://' . $_SERVER['HTTP_HOST'];
-			} else {
-				$this->send_error_response(400, 'Missing Origin header');
-				return true;
-			}
+			$this->send_error_response(400, 'Missing Origin header');
+			return true;
 		}
 
 		if (!$this->is_origin_allowed($origin)) {
-			$this->send_error_response(403, 'Origin not allowed');
+			$this->send_error_response(403, 'Origin not allowed: ' . $origin);
 			return true;
 		}
 
@@ -118,31 +101,15 @@ class HeadlessWP_CORS {
 	/**
 	 * Get the request origin from headers.
 	 *
-	 * @param WP_REST_Request|null $request Request object or null.
 	 * @return string|null The request origin or null if not found.
 	 */
-	protected function get_request_origin($request = null) {
+	protected function get_request_origin() {
 		// First try to get origin from Origin header
 		if (isset($_SERVER['HTTP_ORIGIN'])) {
 			return $_SERVER['HTTP_ORIGIN'];
 		}
 		
-		// If no origin, try to get it from the request
-		if ($request && method_exists($request, 'get_header')) {
-			$request_origin = $request->get_header('origin');
-			if (!empty($request_origin)) {
-				return $request_origin;
-			}
-		}
-		
-		// Try to get origin from HTTP_HOST
-		if (isset($_SERVER['HTTP_HOST'])) {
-			$host = $_SERVER['HTTP_HOST'];
-			$scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-			return $scheme . '://' . $host;
-		}
-		
-		// If still no origin, try to get it from the referer
+		// If no origin, try to get it from the referer
 		if (isset($_SERVER['HTTP_REFERER'])) {
 			$referer = parse_url($_SERVER['HTTP_REFERER']);
 			if (isset($referer['scheme']) && isset($referer['host'])) {
@@ -154,46 +121,16 @@ class HeadlessWP_CORS {
 			}
 		}
 
-		// If all else fails, try to construct from SERVER_NAME
-		if (isset($_SERVER['SERVER_NAME'])) {
-			$scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-			$port = isset($_SERVER['SERVER_PORT']) ? ':' . $_SERVER['SERVER_PORT'] : '';
-			return $scheme . '://' . $_SERVER['SERVER_NAME'] . $port;
-		}
-
-		return null;
-	}
-
-	/**
-	 * Handle CORS for all requests, including GraphQL
-	 */
-	public function handle_all_requests() {
-		// Only handle OPTIONS requests
-		if ($_SERVER['REQUEST_METHOD'] !== 'OPTIONS') {
-			return;
-		}
-
-		$origin = $this->get_request_origin();
-		
-		if (empty($origin)) {
-			// For localhost development, allow requests without origin
-			if (isset($_SERVER['HTTP_HOST']) && 
-				(strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || 
-				 strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false)) {
-				$origin = 'http://' . $_SERVER['HTTP_HOST'];
-			} else {
-				$this->send_error_response(400, 'Missing Origin header');
-				exit;
+		// Check if this is a localhost request
+		if (isset($_SERVER['HTTP_HOST'])) {
+			$host = $_SERVER['HTTP_HOST'];
+			if (strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false) {
+				$scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+				return $scheme . '://' . $host;
 			}
 		}
 
-		if (!$this->is_origin_allowed($origin)) {
-			$this->send_error_response(403, 'Origin not allowed');
-			exit;
-		}
-
-		$this->send_cors_headers($origin);
-		exit;
+		return null;
 	}
 
 	/**
@@ -205,13 +142,8 @@ class HeadlessWP_CORS {
 		header('Access-Control-Allow-Origin: ' . $origin);
 		header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 		header('Access-Control-Allow-Credentials: true');
-		header('Access-Control-Allow-Headers: Content-Type, X-WP-API-Key, Origin, Accept, Authorization, X-Requested-With, X-WP-Nonce, X-GraphQL-Request');
+		header('Access-Control-Allow-Headers: Content-Type, X-WP-API-Key, Origin, Accept');
 		header('Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages');
-		header('Access-Control-Max-Age: 86400'); // Cache preflight requests for 24 hours
-		
-		// Add additional headers for REST API and GraphQL
-		header('X-Content-Type-Options: nosniff');
-		header('X-Frame-Options: DENY');
 	}
 
 	/**

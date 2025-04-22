@@ -12,7 +12,8 @@
     }
   ],
   "require": {
-    "php": ">=7.4"
+    "php": ">=7.4",
+    "wp-graphql/wp-graphql": "^1.14"
   },
   "require-dev": {
     "phpunit/phpunit": "^9.0"

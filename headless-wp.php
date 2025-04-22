@@ -93,6 +93,18 @@ add_action('admin_init', 'headlesswp_activation_redirect');
  * Load plugin dependencies.
  */
 require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-headlesswp.php';
+require_once HEADLESSWP_PLUGIN_DIR . 'includes/class-graphql.php';
+
+/**
+ * Initialize GraphQL functionality
+ */
+function init_headlesswp_graphql() {
+	if (class_exists('WPGraphQL')) {
+		$graphql = new \HeadlessWP\GraphQL();
+		$graphql->init();
+	}
+}
+add_action('plugins_loaded', 'init_headlesswp_graphql');
 
 /**
  * Begins execution of the plugin.

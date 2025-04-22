@@ -46,43 +46,10 @@ class HeadlessWP_Frontend {
 	 * Apply headless functionality based on settings.
 	 */
 	private function apply_headless_functionality() {
-		// Disable theme functionality if enabled
-		if (!empty($this->options['disable_themes'])) {
-			add_action('admin_menu', [$this, 'disable_themes_menu'], 999);
-			add_action('admin_init', [$this, 'disable_theme_customizer']);
-		}
-
 		// Disable frontend if enabled
 		if (!empty($this->options['disable_frontend'])) {
 			add_action('template_redirect', [$this, 'redirect_frontend_to_api']);
 		}
-	}
-
-	/**
-	 * Disable the Themes menu in the admin.
-	 */
-	public function disable_themes_menu() {
-		remove_menu_page('themes.php');
-		remove_submenu_page('themes.php', 'themes.php');
-		remove_submenu_page('themes.php', 'theme-editor.php');
-		remove_submenu_page('themes.php', 'customize.php');
-	}
-
-	/**
-	 * Disable the Theme Customizer.
-	 */
-	public function disable_theme_customizer() {
-		global $pagenow;
-
-		// Redirect from customizer page
-		if ($pagenow === 'customize.php') {
-			wp_redirect(admin_url());
-			exit;
-		}
-
-		// Remove customize support
-		remove_action('admin_menu', 'customize_admin_menu');
-		remove_action('wp_before_admin_bar_render', 'wp_customize_support_script');
 	}
 
 	/**
