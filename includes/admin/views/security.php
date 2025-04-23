@@ -48,6 +48,18 @@ if (isset($_POST['submit']) && current_user_can('manage_options')) {
 
                 <table class="form-table">
                     <tr>
+                        <th scope="row"><?php _e('API Key Requirement', 'headlesswp'); ?></th>
+                        <td>
+                            <fieldset>
+                                <label for="require_api_key">
+                                    <input name="headlesswp_security_options[require_api_key]" type="checkbox" id="require_api_key" value="1" <?php checked(isset($options['require_api_key']) ? $options['require_api_key'] : false); ?>>
+                                    <?php _e('Require API key for all API requests', 'headlesswp'); ?>
+                                </label>
+                                <p class="description"><?php _e('When enabled, all API requests (both REST API and GraphQL) will require a valid API key. When disabled, API keys are optional but can still be used for authentication.', 'headlesswp'); ?></p>
+                            </fieldset>
+                        </td>
+                    </tr>
+                    <tr>
                         <th scope="row"><?php _e('Enable CORS', 'headlesswp'); ?></th>
                         <td>
                             <fieldset>

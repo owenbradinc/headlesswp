@@ -42,11 +42,15 @@ class HeadlessWP_CORS {
 			// Remove WordPress default CORS headers
 			remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
 			
-			// Add our CORS handling
+			// Add our CORS handling for REST API
 			add_filter('rest_pre_serve_request', [$this, 'handle_cors_headers'], 10, 4);
 			
-			// Handle preflight requests
+			// Handle preflight requests for REST API
 			add_action('rest_api_init', [$this, 'handle_preflight_requests'], 0);
+
+			// Add CORS handling for GraphQL
+			add_filter('graphql_response_headers', [$this, 'handle_graphql_cors_headers'], 10, 1);
+			add_action('graphql_before_resolve_field', [$this, 'handle_graphql_preflight'], 0);
 		}
 	}
 
@@ -59,6 +63,16 @@ class HeadlessWP_CORS {
 			
 			if (empty($origin)) {
 				$this->send_error_response(400, 'Missing Origin header');
+				exit;
+			}
+
+			// Check if API keys are enabled and user is not authenticated
+			$api_auth = new HeadlessWP_API_Auth([]);
+			$auth_result = $api_auth->authenticate_api_key(null);
+			
+			// If API keys are enabled and authentication failed, block the request
+			if (is_wp_error($auth_result) && $auth_result->get_error_code() === 'rest_disabled') {
+				$this->send_error_response(401, 'API key is required for CORS requests');
 				exit;
 			}
 
@@ -87,6 +101,20 @@ class HeadlessWP_CORS {
 		if (empty($origin)) {
 			$this->send_error_response(400, 'Missing Origin header');
 			return true;
+		}
+
+		// Check if API keys are required
+		$security_options = get_option('headlesswp_security_options', []);
+		if (!empty($security_options['require_api_key'])) {
+			// Check if API keys are enabled and user is not authenticated
+			$api_auth = new HeadlessWP_API_Auth([]);
+			$auth_result = $api_auth->authenticate_api_key(null);
+			
+			// If API keys are enabled and authentication failed, block the request
+			if (is_wp_error($auth_result) && $auth_result->get_error_code() === 'rest_disabled') {
+				$this->send_error_response(401, 'API key is required for CORS requests');
+				return true;
+			}
 		}
 
 		if (!$this->is_origin_allowed($origin)) {
@@ -210,5 +238,89 @@ class HeadlessWP_CORS {
 			$normalized .= ':' . $parsed['port'];
 		}
 		return $normalized;
+	}
+
+	/**
+	 * Handle GraphQL CORS headers.
+	 *
+	 * @param array $headers The response headers.
+	 * @return array Modified headers.
+	 */
+	public function handle_graphql_cors_headers($headers) {
+		$origin = $this->get_request_origin();
+		
+		if (empty($origin)) {
+			$this->send_error_response(400, 'Missing Origin header');
+			return $headers;
+		}
+
+		// Check if API keys are required
+		$security_options = get_option('headlesswp_security_options', []);
+		if (!empty($security_options['require_api_key'])) {
+			// Check if API keys are enabled and user is not authenticated
+			$api_auth = new HeadlessWP_API_Auth([]);
+			$auth_result = $api_auth->authenticate_api_key(null);
+			
+			// If API keys are enabled and authentication failed, block the request
+			if (is_wp_error($auth_result) && $auth_result->get_error_code() === 'rest_disabled') {
+				$this->send_error_response(401, 'API key is required for CORS requests');
+				return $headers;
+			}
+		}
+
+		if (!$this->is_origin_allowed($origin)) {
+			$this->send_error_response(403, 'Origin not allowed: ' . $origin);
+			return $headers;
+		}
+
+		// Add CORS headers
+		$headers['Access-Control-Allow-Origin'] = $origin;
+		$headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS';
+		$headers['Access-Control-Allow-Credentials'] = 'true';
+		$headers['Access-Control-Allow-Headers'] = 'Content-Type, X-WP-API-Key, Origin, Accept';
+		$headers['Access-Control-Expose-Headers'] = 'X-WP-Total, X-WP-TotalPages';
+
+		return $headers;
+	}
+
+	/**
+	 * Handle GraphQL preflight requests.
+	 */
+	public function handle_graphql_preflight() {
+		if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+			$origin = $this->get_request_origin();
+			
+			if (empty($origin)) {
+				$this->send_error_response(400, 'Missing Origin header');
+				exit;
+			}
+
+			// Check if API keys are required
+			$security_options = get_option('headlesswp_security_options', []);
+			if (!empty($security_options['require_api_key'])) {
+				// Check if API keys are enabled and user is not authenticated
+				$api_auth = new HeadlessWP_API_Auth([]);
+				$auth_result = $api_auth->authenticate_api_key(null);
+				
+				// If API keys are enabled and authentication failed, block the request
+				if (is_wp_error($auth_result) && $auth_result->get_error_code() === 'rest_disabled') {
+					$this->send_error_response(401, 'API key is required for CORS requests');
+					exit;
+				}
+			}
+
+			if (!$this->is_origin_allowed($origin)) {
+				$this->send_error_response(403, 'Origin not allowed: ' . $origin);
+				exit;
+			}
+
+			// Send CORS headers for preflight
+			header('Access-Control-Allow-Origin: ' . $origin);
+			header('Access-Control-Allow-Methods: POST, OPTIONS');
+			header('Access-Control-Allow-Credentials: true');
+			header('Access-Control-Allow-Headers: Content-Type, X-WP-API-Key, Origin, Accept');
+			header('Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages');
+			exit;
+		}
 	}
 }

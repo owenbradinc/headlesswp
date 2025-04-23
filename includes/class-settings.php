@@ -100,6 +100,48 @@ class HeadlessWP_Settings {
                 'description' => __('Hide the Themes section in the WordPress admin.', 'headlesswp')
             ]
         );
+        add_settings_section(
+            'headlesswp_security',
+            __('Security Settings', 'headlesswp'),
+            [$this, 'render_security_section'],
+            'headlesswp-security'
+        );
+        add_settings_field(
+            'require_api_key',
+            __('API Key Requirement', 'headlesswp'),
+            [$this, 'render_checkbox_field'],
+            'headlesswp-security',
+            'headlesswp_security',
+            [
+                'id' => 'require_api_key',
+                'description' => __('Require API key for all API requests', 'headlesswp'),
+                'option_name' => 'headlesswp_security_options'
+            ]
+        );
+        add_settings_field(
+            'enable_cors',
+            __('CORS Settings', 'headlesswp'),
+            [$this, 'render_checkbox_field'],
+            'headlesswp-security',
+            'headlesswp_security',
+            [
+                'id' => 'enable_cors',
+                'description' => __('Enable Cross-Origin Resource Sharing (CORS)', 'headlesswp'),
+                'option_name' => 'headlesswp_security_options'
+            ]
+        );
+        add_settings_field(
+            'allow_all_origins',
+            __('Allow All Origins', 'headlesswp'),
+            [$this, 'render_checkbox_field'],
+            'headlesswp-security',
+            'headlesswp_security',
+            [
+                'id' => 'allow_all_origins',
+                'description' => __('Allow requests from any origin (not recommended for production)', 'headlesswp'),
+                'option_name' => 'headlesswp_security_options'
+            ]
+        );
     }
     /**
      * Render the redirect settings section.
@@ -112,6 +154,12 @@ class HeadlessWP_Settings {
      */
     public function render_general_section() {
         echo '<p>' . __('Configure general plugin settings.', 'headlesswp') . '</p>';
+    }
+    /**
+     * Render the security settings section.
+     */
+    public function render_security_section() {
+        echo '<p>' . __('Configure security settings for your headless WordPress installation.', 'headlesswp') . '</p>';
     }
     /**
      * Render the redirect URL field.
@@ -159,8 +207,13 @@ class HeadlessWP_Settings {
     public function render_checkbox_field($args) {
         $id = $args['id'];
         $description = $args['description'];
-        $checked = isset($this->options[$id]) ? $this->options[$id] : false;
-        echo '<input type="checkbox" id="' . esc_attr($id) . '" name="headlesswp_options[' . esc_attr($id) . ']" ' . checked($checked, true, false) . ' />';
+        $option_name = isset($args['option_name']) ? $args['option_name'] : 'headlesswp_options';
+        
+        // Get the appropriate options array
+        $options = get_option($option_name, array());
+        $checked = isset($options[$id]) ? $options[$id] : false;
+        
+        echo '<input type="checkbox" id="' . esc_attr($id) . '" name="' . esc_attr($option_name) . '[' . esc_attr($id) . ']" ' . checked($checked, true, false) . ' />';
         echo '<label for="' . esc_attr($id) . '">' . esc_html($description) . '</label>';
     }
     /**
@@ -195,7 +248,10 @@ class HeadlessWP_Settings {
         // Initialize output with current options
         $output = $current_options;
         
-        // CORS settings - explicitly set to false if not in input
+        // API key requirement
+        $output['require_api_key'] = !empty($input['require_api_key']);
+        
+        // CORS settings
         $output['enable_cors'] = !empty($input['enable_cors']);
         $output['allow_all_origins'] = !empty($input['allow_all_origins']);
         
